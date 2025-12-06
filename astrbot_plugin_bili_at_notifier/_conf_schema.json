@@ -1,0 +1,94 @@
+{
+    "account_labels": {
+        "description": "账号标签列表",
+        "type": "list",
+        "hint": "为每个账号设置一个易于识别的标签（例如：主号、小号）。列表顺序必须与其他账号列表（SESSDATA, bili_jct, User-Agent）一一对应。",
+        "items": {
+            "type": "string",
+            "default": "默认账号"
+        }
+    },
+    "account_SESSDATA": {
+        "description": "账号 SESSDATA 列表",
+        "type": "list",
+        "hint": "必填。按顺序填入每个账号的 SESSDATA。列表顺序必须与其他账号列表一一对应。",
+        "items": {
+            "type": "string"
+        },
+        "obvious_hint": true
+    },
+    "account_bili_jct": {
+        "description": "账号 bili_jct 列表",
+        "type": "list",
+        "hint": "必填。按顺序填入每个账号的 bili_jct。列表顺序必须与其他账号列表一一对应。",
+        "items": {
+            "type": "string"
+        },
+        "obvious_hint": true
+    },
+    "account_user_agents": {
+        "description": "账号 User-Agent 列表",
+        "type": "list",
+        "hint": "可选。按顺序填入每个账号的 User-Agent。如果某项留空，则该账号使用下方的“全局 User-Agent”。列表顺序必须与其他账号列表一一对应。",
+        "items": {
+            "type": "string",
+            "default": ""
+        }
+    },
+    "global_user_agent": {
+        "description": "全局 User-Agent",
+        "type": "string",
+        "hint": "如果账号 User-Agent 列表中的某项为空，则该账号使用此全局值。",
+        "default": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
+    },
+    "target_umos": {
+        "description": "目标推送 UMO 列表",
+        "type": "list",
+        "hint": "需要推送通知的目标会话 UMO (Unified Message Origin) 列表。",
+        "items": {
+            "type": "string"
+        }
+    },
+    "polling_interval": {
+        "description": "轮询间隔（秒）",
+        "type": "int",
+        "default": 60,
+        "hint": "检查每个账号 @ 消息的总周期频率。"
+    },
+    "bili_quality": {
+        "description": "B站视频清晰度 (视频解析用)",
+        "type": "int",
+        "default": 32,
+        "hint": "16: 360P|32: 480P|64: 720P|80: 1080P|112: 1080P+（高码率）|120: 4K"
+    },
+     "bili_use_login": {
+        "description": "是否使用登录状态下载B站视频",
+        "hint": "启用后将尝试使用登录状态下载高清视频，禁用则强制使用无登录方式。建议禁用以避免频繁登录。",
+        "type": "bool",
+        "default": false
+    },
+    "max_video_size": {
+        "description": "最大视频大小（MB）",
+        "type": "int",
+        "default": 100,
+        "hint": "超过此大小的视频将尝试以文件形式发送。"
+    },
+    "send_delay": {
+        "description": "推送间隔（秒）",
+        "type": "float",
+        "default": 1.0,
+        "hint": "推送多条 @ 消息或多个账号消息时，每条消息之间的发送延迟。"
+    },
+    "nap_server_address": {
+        "description": "Napcat 服务地址 (视频解析用)",
+        "type": "string",
+        "default": "localhost",
+        "hint": "若视频解析插件与 AstrBot 在同一服务器，请填写 localhost。"
+    },
+    "nap_server_port": {
+        "description": "Napcat 接收文件端口 (视频解析用)",
+        "type": "int",
+        "default": 3658,
+         "hint": "如果 Napcat 服务在同一服务器，此项通常无需修改。"
+    }
+}
