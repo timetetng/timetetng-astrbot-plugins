@@ -1,0 +1,21 @@
+{
+  "llm_trigger_prefix": {
+    "description": "LLM触发前缀。伪造的消息将以此前缀开头，以便触发LLM。",
+    "type": "string",
+    "hint": "通常是 / 或 # 等，需要与您的LLM配置匹配。",
+    "default": "/"
+  },
+  "poke_message_templates": {
+    "description": "戳一戳动作的消息模板列表。每个模板将平均分配被选中的概率。可以使用 {username} 占位符。",
+    "type": "list",
+    "hint": "每个元素是一个字符串，例如：'{username} 轻轻地戳了一下你'。",
+    "items": {
+      "type": "string"
+    },
+    "default": [
+      "{username} 戳了一下你",
+      "{username} 对你做了个鬼脸",
+      "{username} 敲了敲你的脑袋"
+    ]
+  }
+}
