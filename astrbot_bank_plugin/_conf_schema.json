@@ -1,0 +1,46 @@
+{
+  "savings_interest_rate": {
+    "description": "每日存款利率 (例如: 0.005 代表 0.5%)",
+    "type": "float",
+    "default": 0.005
+  },
+  "loan_interest_rate": {
+    "description": "每日贷款利率 (例如: 0.02 代表 2%)",
+    "type": "float",
+    "default": 0.02
+  },
+  "withdrawal_fee_rate": {
+    "description": "取款手续费率 (例如: 0.001 代表 0.1%)",
+    "type": "float",
+    "default": 0.001
+  },
+  "interest_calculation_hour": {
+    "description": "每日利息结算的小时 (24小时制)",
+    "type": "int",
+    "default": 4
+  },
+  "fixed_deposit_interest_multiplier": {
+    "description": "定期存款利率相对于活期利率的倍数",
+    "type": "float",
+    "default": 4,
+    "hint": "例如，活期日利率0.5%，此值为2.5，则定期日利率为1.25%。"
+  },
+  "fixed_deposit_max_weeks": {
+    "description": "允许的最大定期存款周数",
+    "type": "int",
+    "default": 52,
+    "hint": "限制用户可以存的最长年限，例如52代表一年。"
+  },
+  "loan_to_value_ratio": {
+    "description": "贷款成数/抵押率 (例如: 0.8 代表 80%)",
+    "type": "float",
+    "default": 0.8,
+    "hint": "决定最大贷款额度。例如公司资产为1000，此值为0.8，则最大可贷800。"
+  },
+    "loan_origination_fee_rate": {
+    "description": "贷款手续费率 (例如: 0.01 代表 1%)",
+    "type": "float",
+    "default": 0.01,
+    "hint": "贷款成功时收取一次性的手续费。"
+  }
+}

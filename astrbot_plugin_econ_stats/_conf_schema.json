@@ -1,0 +1,14 @@
+{
+  "update_interval_minutes": {
+    "description": "数据统计任务的更新间隔（分钟）",
+    "type": "int",
+    "hint": "设置后台统计任务每隔多少分钟运行一次。建议不要低于5分钟，以免造成不必要的性能开销。",
+    "default": 60
+  },
+  "chart_days": {
+    "description": "生成图表时，默认显示最近多少天的数据",
+    "type": "int",
+    "hint": "例如，设置为7，则金币增长图会显示最近一周的数据。",
+    "default": 7
+  }
+}

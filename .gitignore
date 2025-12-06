@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.py.save
+*.db
+*.log
+astrbot_stock_market/config.py

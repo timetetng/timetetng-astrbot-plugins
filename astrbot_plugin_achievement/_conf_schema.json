@@ -1,0 +1,48 @@
+{
+  "session_whitelist": {
+    "description": "会话白名单",
+    "type": "list",
+    "default": [],
+    "hint": "在此处添加启用的会话SID。使用/sid获取，留空默认全部开启。"
+  },
+  "check_cooldown": {
+    "description": "成就检查冷却时间（秒）",
+    "type": "int",
+    "default": 60,
+    "hint": "为防止性能问题，插件不会在每次用户发消息时都检查成就，而是根据此冷却时间。"
+  },
+  "enable_rewards": {
+    "description": "是否启用成就奖励",
+    "type": "bool",
+    "default": true
+  },
+  "reward_reason_text": {
+    "description": "发放金币奖励时记录的日志原因",
+    "type": "string",
+    "default": "解锁成就奖励"
+  },
+  "announcement_template": {
+    "description": "解锁成就时的播报消息模板 (支持Jinja2语法)",
+    "type": "text",
+    "default": "🎉 成就解锁！🎉\n恭喜 {{ user_name }} 解锁了成就【{{ achievement_title }}】({{ rarity }}){{ uniqueness }}！{% if reward_coins > 0 %}\n获得金币奖励：{{ reward_coins }}💰{% endif %}",
+    "hint": "使用 {{ 变量名 }} 来插入变量，例如 {{ user_name }}。\n支持使用 {% if 条件 %} ... {% endif %} 来进行条件判断。\n可用变量: user_name, achievement_title, reward_coins, rarity, uniqueness"
+  },
+  "font_path": {
+    "description": "成就图片生成器使用的字体文件路径",
+    "type": "string",
+    "default": "data/plugins/astrbot_plugin_achievement/assets/fonts/minecraft_font.ttf",
+    "hint": "相对于AstrBot根目录的路径。"
+  },
+  "icon_check_interval_hours": {
+    "description": "后台自动检查并缓存网络图标的间隔时间（单位：小时）",
+    "type": "float",
+    "hint": "设置为 0 可以禁用自动检查",
+    "default": 4.0
+  },
+  "proxy_address": {
+    "description": "用于下载网络图标的HTTP代理地址 (例如 http://127.0.0.1:8888)",
+    "type": "string",
+    "hint": "留空则不使用代理。需要填写完整的地址，包括 http:// 或 https://",
+    "default": ""
+  }
+}

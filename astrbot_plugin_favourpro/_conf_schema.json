@@ -1,0 +1,8 @@
+{
+    "session_based": {
+        "description": "是否启用会话独立的状态系统",
+        "type": "bool",
+        "default": false,
+        "hint": "开启后，每个群聊/私聊的状态将独立计算，关闭则使用全局统一状态"
+    }
+}

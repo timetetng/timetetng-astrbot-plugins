@@ -1,0 +1,6 @@
+# astrbot_plugin_industry/metadata.yaml
+name: astrbot_plugin_industry
+author: TimeXingjian # 替换为您的名字
+description: 虚拟公司经营插件，玩家可以创立、经营和升级公司来赚取金币。
+version: 1.0.0
+repo_url: https://github.com/timetetng/astrbot_plugin_industry # 替换为您的仓库地址

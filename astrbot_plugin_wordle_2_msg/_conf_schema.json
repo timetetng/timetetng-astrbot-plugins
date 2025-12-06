@@ -1,0 +1,47 @@
+{
+  "reward_enabled": {
+    "type": "bool",
+    "description": "是否启用金币奖励系统",
+    "default": true
+  },
+  "base_reward": {
+    "type": "int",
+    "description": "猜对单词的基础金币奖励。",
+    "default": 500
+  },
+  "length_multiplier": {
+    "type": "int",
+    "description": "难度系数：每增加一个字母长度，额外奖励的金币数。",
+    "default": 100
+  },
+  "speed_bonus_max": {
+    "type": "int",
+    "description": "速度奖励：一次猜对可获得的最大额外奖励。实际奖励会根据剩余次数比例计算。",
+    "default": 1000
+  },
+  "hint_penalty_percentage": {
+    "type": "float",
+    "description": "提示惩罚：每次使用提示，最终奖励降低的百分比（例如 0.2 表示降低20%）。",
+    "default": 0.2
+  },
+  "clue_dividend_enabled": {
+    "type": "bool",
+    "description": "是否启用线索分红机制。",
+    "default": true
+  },
+  "clue_dividend_percentage": {
+    "type": "float",
+    "description": "线索分红比例：贡献最多线索的玩家，可获得的额外奖励占胜利者奖金的百分比。",
+    "default": 0.15
+  },
+  "custom_word_list": {
+    "type": "text",
+    "description": "自定义单词列表（支持正则），用于通过拼写检查。多个单词用分号 ; 隔开。",
+    "default": ""
+  },
+  "daily_reward_limit": {
+    "type": "int",
+    "description": "每人每日通过猜单词可获取的金币上限。设置为0或负数则不限制。",
+    "default": 5000
+  }
+}

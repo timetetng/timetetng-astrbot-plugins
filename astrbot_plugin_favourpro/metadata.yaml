@@ -1,0 +1,6 @@
+name: favorpro # 这是你的插件的唯一识别名。
+desc: LLM驱动的好感度系统，提供好感度API
+help:  # 插件的帮助信息
+version: v1.0.3 # 插件的版本号
+author: TimeXingjian
+repo: repo # 插件的仓库地址

@@ -1,0 +1,55 @@
+{
+  "bot_user_id": {
+    "description": "机器人自身的User ID",
+    "type": "string",
+    "hint": "这是LLM控制的资金账户的唯一标识，所有资金变动都基于此ID。",
+    "obvious_hint": true
+  },
+  "max_transaction_amount": {
+    "description": "单次转账/扣款的最大金额",
+    "type": "int",
+    "hint": "限制LLM单次操作的最大金额，防止数值过大。",
+    "default": 10000
+  },
+  "daily_user_allowance_limit": {
+    "description": "每日用户从Bot获取金币上限",
+    "type": "int",
+    "hint": "每个用户每天从机器人处获得金币的总额上限，午夜重置。",
+    "default": 50000
+  },
+  "low_balance_threshold": {
+    "description": "机器人“吝啬”阈值",
+    "type": "int",
+    "hint": "当机器人余额低于此值时，它会变得“吝啬”，并拒绝向外转账。",
+    "default": 20000
+  },
+  "robbery_threshold_ratio": {
+    "description": "触发“抢劫”欲望的财富倍率",
+    "type": "float",
+    "hint": "当检测到用户余额是机器人余额的N倍时，LLM可能会考虑从该用户身上“拿”点钱。",
+    "default": 1.0
+  },
+  "tax_collection_time": {
+    "description": "每日收税时间 (HH:MM:SS)",
+    "type": "string",
+    "hint": "设置每天自动征收资产税的具体时间，格式为 '时:分:秒' (24小时制)。",
+    "default": "00:00:05"
+  },
+  "tax_rates": {
+    "description": "每日资产税税率列表 (前10名)",
+    "type": "list",
+    "hint": "一个包含10个浮点数的JSON数组，例如 [0.05, 0.04, ...]。对应总资产排名前10的玩家的税率。",
+    "default": [
+      0.02,
+      0.015,
+      0.01,
+      0.01,
+      0.01,
+      0.0075,
+      0.007,
+      0.006,
+      0.005,
+      0.005
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "enable_api": {
+    "description": "是否启用 Web API 服务",
+    "type": "bool",
+    "default": false
+  },
+  "host": {
+    "description": "API 服务监听的主机地址",
+    "type": "string",
+    "default": "0.0.0.0",
+    "hint": "通常保持 0.0.0.0 即可，代表监听所有网络接口。"
+  },
+  "port": {
+    "description": "API 服务监听的端口",
+    "type": "int",
+    "default": 30007
+  },
+  "api_key": {
+    "description": "用于 API 身份验证的安全密钥 (API Key)",
+    "type": "string",
+    "default": "lsb//332211",
+    "hint": "请务必修改为一个长且随机的安全字符串！",
+    "obvious_hint": true
+  }
+}

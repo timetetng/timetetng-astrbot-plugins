@@ -1,0 +1,138 @@
+{
+  "general": {
+    "description": "通用设置",
+    "type": "object",
+    "items": {
+      "timeout_seconds": {
+        "description": "答题超时时间（秒）",
+        "type": "int",
+        "default": 60,
+        "hint": "每轮猜题的作答时限。"
+      },
+      "llm_timeout_seconds": {
+        "description": "LLM出题请求超时时间（秒）",
+        "type": "int",
+        "default": 30,
+        "hint": "向大语言模型请求生成题目时的单次等待上限。"
+      },
+      "llm_max_retries": {
+        "description": "LLM出题最大重试次数",
+        "type": "int",
+        "default": 2,
+        "hint": "当LLM出题超时或失败时，额外尝试的次数。"
+      }
+    }
+  },
+  "llm_parameters": {
+    "description": "LLM 调用参数设置",
+    "type": "object",
+    "items": {
+      "temperature": {
+        "description": "LLM 温度 (Temperature)",
+        "type": "float",
+        "default": 0.8,
+        "hint": "控制生成文本的随机性。值越高（如 1.0），回答越随机、越有创意；值越低（如 0.2），回答越确定、越保守。推荐 0.7-0.9。"
+      },
+      "top_p": {
+        "description": "LLM 核心采样 (Top P)",
+        "type": "float",
+        "default": 0.95,
+        "hint": "控制生成文本的多样性。模型会从概率总和为 p 的最高可能性词元中进行采样。值设为 1.0 会禁用此功能。推荐 0.9-1.0。"
+      }
+    }
+  },
+  "rewards": {
+    "description": "奖励系统设置",
+    "type": "object",
+    "items": {
+      "base_reward": {
+        "description": "基础奖励金币",
+        "type": "int",
+        "default": 50,
+        "hint": "在没有任何乘数或惩罚前，答对一题的基础金币奖励。"
+      },
+      "daily_reward_cap": {
+        "description": "每日奖励上限",
+        "type": "int",
+        "default": 1000,
+        "hint": "每位用户每天通过本插件能获得的总金币上限。"
+      },
+      "difficulty_multipliers": {
+        "description": "难度奖励倍率",
+        "type": "object",
+        "items": {
+          "simple": { "description": "简单难度倍率", "type": "float", "default": 1.0 },
+          "normal": { "description": "普通难度倍率", "type": "float", "default": 1.3 },
+          "hard": { "description": "困难难度倍率", "type": "float", "default": 2.0 }
+        }
+      },
+      "penalty_per_wrong_guess": {
+        "description": "每次猜错的奖励惩罚（百分比）",
+        "type": "float",
+        "default": 0.1,
+        "hint": "例如，0.1代表每次猜错，最终奖励减少10%。"
+      },
+      "max_wrong_guess_penalty": {
+        "description": "猜错惩罚的上限（百分比）",
+        "type": "float",
+        "default": 0.5,
+        "hint": "例如，0.5代表因猜错导致的奖励减少最多不超过50%。"
+      }
+    }
+  },
+  "content": {
+    "description": "题目内容设置",
+    "type": "object",
+    "items": {
+      "topics": {
+        "description": "出题领域列表（用英文逗号,分隔）",
+        "type": "text",
+        "default": "历史,地理,文学,艺术,音乐,电影,数学,物理,化学,生物,天文学,计算机科学,编程,体育,动漫,游戏,生活常识,冷知识,语言学,神话传说,英语,日语",
+        "hint": "在这里增删领域，用逗号分隔，不要有空格。"
+      },
+      "seed_words": {
+        "description": "随机种子词列表（用英文逗号,分隔）",
+        "type": "text",
+        "default": "经典,冷门,趣味,现代,教科书式,跨学科,颠覆认知,基础,核心概念,里程碑式,鲜为人知,热门",
+        "hint": "用于增加题目随机性的词汇，用逗号分隔。"
+      },
+      "topic_history_length": {
+        "description": "话题历史记录长度（用于动态加权）",
+        "type": "int",
+        "default": 5,
+        "hint": "记录最近N个出过的话题以降低它们的权重。值越大，话题重复率越低，但计算稍慢。"
+      }
+    }
+  },
+  "validation": {
+    "description": "答案校验设置",
+    "type": "object",
+    "items": {
+      "similarity_threshold": {
+        "description": "模糊匹配相似度阈值",
+        "type": "float",
+        "default": 0.85,
+        "hint": "用户答案与标准答案的相似度超过此值即视为正确。范围0.0到1.0。"
+      },
+      "use_secondary_llm": {
+        "description": "启用LLM二次校验",
+        "type": "bool",
+        "default": false,
+        "hint": "当精确和模糊匹配都失败时，是否调用一个小模型来做最终裁决。"
+      },
+      "secondary_llm_provider_id": {
+        "description": "用于二次校验的LLM模型提供商",
+        "type": "string",
+        "default": "",
+        "_special": "select_provider",
+        "hint": "推荐选择一个速度快、成本低的小模型。如果留空，即使启用也无法使用。"
+      },
+      "secondary_llm_timeout": {
+        "description": "二次校验请求超时（秒）",
+        "type": "int",
+        "default": 10,
+        "hint": "如果小模型在此时间内未响应，则视为回答错误。"
+      }
+    }
+  }
+}

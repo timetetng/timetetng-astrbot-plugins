@@ -1,0 +1,9 @@
+{
+  "daily_coin_limit": {
+    "description": "每个用户每天通过本插件最多能获得的金币数。",
+    "type": "int",
+    "default": 1000,
+    "hint": "设置为 0 或负数表示无限制。",
+    "obvious_hint": true
+  }
+}

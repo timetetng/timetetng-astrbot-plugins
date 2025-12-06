@@ -1,0 +1,5 @@
+name: astrbot_plugin_meme_manager_lite
+desc: 允许LLM在回答中使用表情包 轻量级！添加函数工具
+version: v2.1
+author: timeteng
+repo: https://github.com/timetetng/astrbot_plugin_meme_manager_lite

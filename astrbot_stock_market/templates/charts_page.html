@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>实时K线与交易</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+
+    <style>
+        .header-links {
+            position: absolute; /* 使用 'fixed' 则会固定在屏幕右上角, 'absolute' 会随页面滚动 */
+            top: 15px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            z-index: 1001; /* 确保在内容之上，但在弹窗之下 */
+        }
+        .header-link {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: #b4bbea; /* 一个中性的深灰色 */
+            font-size: 16px;
+            /* 尝试使用系统默认字体，与页面其他部分协调 */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        .header-link:hover {
+            color: #007bff; /* 鼠标悬停时变为蓝色 */
+            text-decoration: underline; /* Docs 链接显示下划线 */
+        }
+        .header-link svg {
+            width: 24px;
+            height: 24px;
+            /* SVG 元素上的 fill="currentColor" 会使其继承 'a' 标签的 color 属性 */
+        }
+        /* 移除图标链接在悬停时的下划线 */
+        .header-link[aria-label="GitHub Repository"]:hover {
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-links">
+        <a href="https://docs.leewater.online/%E5%BC%80%E5%8F%91%E6%96%87%E6%A1%A3/%E8%99%9A%E6%8B%9F%E8%82%A1%E7%A5%A8API%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3.html" target="_blank" class="header-link">API文档</a>
+        <a href="https://github.com/timetetng/astrbot_stock_market" target="_blank" class="header-link" aria-label="GitHub Repository">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+            </svg>
+        </a>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <div id="register-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal('register-modal')">&times;</span>
+            <h2>注册新账户</h2>
+            <div class="modal-form-group">
+                <label for="reg-userid">登录ID</label>
+                <input type="text" id="reg-userid" placeholder="请输入您的登录ID (非QQ号)">
+            </div>
+            <div class="modal-form-group">
+                <label for="reg-password">密码</label>
+                <input type="password" id="reg-password" placeholder="请输入密码">
+            </div>
+            <button class="modal-button" onclick="handleRegister()">确认注册</button>
+        </div>
+    </div>
+
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal('login-modal')">&times;</span>
+            <h2>登录账户</h2>
+            <div class="modal-form-group">
+                <label for="login-userid">登录ID</label>
+                <input type="text" id="login-userid" placeholder="请输入您的登录ID">
+            </div>
+            <div class="modal-form-group">
+                <label for="login-password">密码</label>
+                <input type="password" id="login-password" placeholder="请输入密码">
+            </div>
+            <button class="modal-button" onclick="handleLogin()">确认登录</button>
+            <a href="#" class="forgot-password-link" onclick="openForgotPasswordModal()">忘记密码?</a>
+        </div>
+    </div>
+    
+    <div id="token-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal('token-modal')">&times;</span>
+            <h2>您的API Token</h2>
+            <p>请妥善保管您的Token，不要泄露给他人。</p>
+            <div class="modal-form-group">
+                <textarea id="api-token-display" readonly rows="4"></textarea>
+            </div>
+            <button class="modal-button" onclick="copyTokenToClipboard()">复制到剪贴板</button>
+        </div>
+    </div>
+    <div id="forgot-password-modal" class="modal">
+        <div class="modal-content" id="forgot-password-content">
+            <span class="close-button" onclick="closeModal('forgot-password-modal')">&times;</span>
+            <h2>重置密码</h2>
+            <div class="modal-form-group">
+                <label for="forgot-userid">登录ID</label>
+                <input type="text" id="forgot-userid" placeholder="请输入您要重置密码的登录ID">
+            </div>
+            <button class="modal-button" onclick="handleForgotPasswordRequest()">获取重置码</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="left-panel">
+            <div id="auth-section" class="auth-section">
+                <div class="user-info" id="user-info-display">访客模式</div>
+                <div class="auth-buttons">
+                    <button id="login-btn" onclick="openModal('login-modal')">登录</button>
+                    <button id="register-btn" onclick="openModal('register-modal')">注册</button>
+                    <button id="get-token-btn" style="display:none;" onclick="handleGetMyToken()">获取Token</button>
+                    <button id="logout-btn" style="display:none;" onclick="handleLogout()">退出</button>
+                </div>
+            </div>
+            
+            <div class="portfolio-card-wrapper" id="portfolio-wrapper">
+                {% if user_portfolio_data %}
+                    <div class="portfolio-card">
+                        <div class="portfolio-header">
+                            <span class="name">{{ user_portfolio_data.user_name }}</span>
+                            <span class="label">的持仓详情</span>
+                        </div>
+                        {% if user_portfolio_data.holdings %}
+                            {% for stock in user_portfolio_data.holdings %}
+                            <div class="portfolio-stock-item clickable-stock" data-stock-id="{{ stock.stock_id }}">
+                                <div class="portfolio-stock-header">
+                                    <span class="stock-name">{{ stock.name }} ({{ stock.stock_id }})</span>
+                                    <span class="market-value">市值 ${{ "%.2f"|format(stock.market_value) }}</span>
+                                </div>
+                                <div class="portfolio-stock-details">
+                                    <span>{{ stock.quantity }}股 @ ${{ "%.2f"|format(stock.avg_cost) }}</span>
+                                    <span class="portfolio-pnl {{ 'positive' if stock.pnl >= 0 else 'negative' }}">
+                                        盈亏: ${{ "%+.2f"|format(stock.pnl) }} ({{ "%+.2f"|format(stock.pnl_percent) }}%)
+                                    </span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            <div class="portfolio-footer">
+                                <div class="portfolio-footer-item">
+                                    <span class="portfolio-footer-label">总市值</span>
+                                    <span>${{ "%.2f"|format(user_portfolio_data.total.market_value) }}</span>
+                                </div>
+                                <div class="portfolio-footer-item">
+                                    <span class="portfolio-footer-label">总盈亏</span>
+                                    <span class="portfolio-pnl {{ 'positive' if user_portfolio_data.total.pnl >= 0 else 'negative' }}">
+                                        ${{ "%+.2f"|format(user_portfolio_data.total.pnl) }} ({{ "%+.2f"|format(user_portfolio_data.total.pnl_percent) }}%)
+                                    </span>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="no-holdings-message">哎呀，你当前没有持仓呢！</div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="no-holdings-message">登录后可查看个人持仓信息</div>
+                {% endif %}
+            </div>
+
+            <div id="trade-panel" class="trade-panel">
+                <h3 id="trade-panel-title">请先登录以进行交易</h3>
+                <div class="trade-form">
+                    <input type="number" id="trade-quantity" placeholder="数量" min="1">
+                    <button class="buy-btn" onclick="handleTrade('buy')">买入</button>
+                    <button class="sell-btn" onclick="handleTrade('sell')">卖出</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="tab-container">
+                {% for stock in stocks %}
+                    <div class="tab" data-stock-id="{{ stock.stock_id }}">{{ stock.name }}</div>
+                {% endfor %}
+            </div>
+            <div class="time-selector-container">
+                <div class="tab time-tab active" data-period="1d">24小时</div>
+                <div class="tab time-tab" data-period="7d">7天</div>
+                <div class="tab time-tab" data-period="30d">30天</div>
+            </div>
+            <div class="chart-container">
+                <div id="kline-chart"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script id="main-script" 
+            src="/static/script.js" 
+            data-user-hash="{{ user_hash or '' }}" 
+            data-stocks="{{ stocks | tojson | e }}">
+    </script>
+</body>
+</html>

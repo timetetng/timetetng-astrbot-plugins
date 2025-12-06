@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>持仓详情</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap');
+        body {
+            background-color: #1e1e2e; /* 深蓝紫色背景 */
+            color: #cdd6f4;
+            font-family: 'Noto Sans SC', sans-serif;
+            padding: 0;
+            margin: 0;
+            width: 500px;
+        }
+        .card {
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 2px solid #45475a;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .header .name {
+            font-size: 24px;
+            font-weight: 700;
+            color: #cba6f7;
+        }
+        .header .label {
+            font-size: 16px;
+            color: #bac2de;
+        }
+        .stock-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #313244;
+            border-left: 5px solid #585b70;
+            border-radius: 5px;
+        }
+        .stock-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .stock-header .stock-name { color: #89b4fa; }
+        .stock-header .market-value { color: #f9e2af; }
+        .stock-details {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 14px;
+            color: #a6adc8;
+        }
+        .pnl.positive { color: #a6e3a1; } /* 绿色代表上涨 */
+        .pnl.negative { color: #f38ba8; } /* 红色代表下跌 */
+        .footer {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 2px solid #45475a;
+            font-size: 16px;
+        }
+        .footer-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        .footer-label { font-weight: 700; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="header">
+            <span class="name">{{ user_name }}</span>
+            <span class="label">的持仓详情</span>
+        </div>
+
+        {% for stock in holdings %}
+        <div class="stock-item">
+            <div class="stock-header">
+                <span class="stock-name">{{ stock.name }} ({{ stock.stock_id }})</span>
+                <span class="market-value">市值 ${{ "%.2f"|format(stock.market_value) }}</span>
+            </div>
+            <div class="stock-details">
+                <span>{{ stock.quantity }}股 @ ${{ "%.2f"|format(stock.avg_cost) }}</span>
+                <span class="pnl {{ 'positive' if stock.is_positive else 'negative' }}">
+                    盈亏: ${{ "%+.2f"|format(stock.pnl) }} ({{ "%+.2f"|format(stock.pnl_percent) }}%)
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="footer">
+            <div class="footer-item">
+                <span class="footer-label">总市值</span>
+                <span>${{ "%.2f"|format(total.market_value) }}</span>
+            </div>
+            <div class="footer-item">
+                <span class="footer-label">总盈亏</span>
+                <span class="pnl {{ 'positive' if total.is_positive else 'negative' }}">
+                    ${{ "%+.2f"|format(total.pnl) }} ({{ "%+.2f"|format(total.pnl_percent) }}%)
+                </span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+    "max_stickers_per_message": {
+        "description": "每条消息最多使用的贴纸数量",
+        "type": "int",
+        "hint": "设置每条消息中最多可以使用的贴纸数量，建议设置为1-3之间",
+        "default": 1
+    },
+    "clean_sticker_tags": {
+        "description": "是否清洗贴纸标签",
+        "type": "bool",
+        "hint": "开启后图片不会出现在llm上下文中，降低副作用，建议保持开启",
+        "default": true
+    },
+    "sticker_trigger_probability": {
+        "description": "表情触发率",
+        "type": "float",
+        "hint": "设置表情的触发概率，值在 0.0 (从不触发) 到 1.0 (总是触发) 之间。例如，0.8 代表80%的概率触发。",
+        "default": 0.1
+    }
+}

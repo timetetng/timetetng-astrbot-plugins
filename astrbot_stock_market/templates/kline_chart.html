@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>K-Line Chart</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        body {
+            background-color: #1a1a1a; /* 深色背景 */
+            color: #e0e0e0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            padding: 0;
+            margin: 0;
+        }
+        .container {
+            padding: 20px;
+            box-sizing: border-box;
+            width: 800px;
+            height: 600px;
+        }
+        .header {
+            margin-bottom: 10px;
+            /* 隐藏HTML层级的标题，因为ECharts会渲染自己的标题 */
+            display: none; 
+        }
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #888;
+        }
+        #kline-chart {
+            width: 100%;
+            height: 520px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <span class="title">{{ stock_name }} ({{ stock_id }})</span>
+            <span class="subtitle">{{ data_period }}</span>
+        </div>
+        <div id="kline-chart"></div>
+    </div>
+
+    <script type="text/javascript">
+        var chartDom = document.getElementById('kline-chart');
+        var myChart = echarts.init(chartDom, 'dark'); // 使用暗色主题
+        var option;
+
+        // 原始数据
+        var rawData = {{ stock_data | tojson }};
+
+        function processData(rawData) {
+            let dates = [];
+            let data = [];
+            for (let i = 0; i < rawData.length; i++) {
+                dates.push(rawData[i].date); // date 已经是 ISO 格式字符串
+                data.push([rawData[i].open, rawData[i].close, rawData[i].low, rawData[i].high]);
+            }
+            return {
+                dates: dates,
+                data: data
+            };
+        }
+
+        var chartData = processData(rawData);
+
+        option = {
+            backgroundColor: 'transparent',
+            // --- 新增标题配置 ---
+            title: {
+                text: '{{ stock_name }} ({{ stock_id }})',
+                subtext: '{{ data_period }}',
+                left: 'center',
+                textStyle: {
+                    color: '#e0e0e0'
+                },
+                subtextStyle: {
+                    color: '#888'
+                }
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'cross' },
+                // 优化tooltip中的时间显示
+                formatter: function (params) {
+                    var data = params[0];
+                    var date = new Date(data.name);
+                    var formattedDate = (date.getMonth() + 1) + '/' + date.getDate() + ' ' +
+                                        ('0' + date.getHours()).slice(-2) + ':' + ('0' + date.getMinutes()).slice(-2);
+                    return '时间: ' + formattedDate + '<br/>' +
+                           '开盘: ' + data.value[0] + '<br/>' +
+                           '收盘: ' + data.value[1] + '<br/>' +
+                           '最低: ' + data.value[2] + '<br/>' +
+                           '最高: ' + data.value[3];
+                }
+            },
+            grid: {
+                left: '10%',
+                right: '10%',
+                bottom: '15%',
+                top: '15%' // 留出标题空间
+            },
+            xAxis: {
+                type: 'category',
+                data: chartData.dates,
+                scale: true,
+                boundaryGap: false, // 让K线紧密排列
+                axisLine: { onZero: false },
+                splitLine: { show: false },
+                min: 'dataMin',
+                max: 'dataMax',
+                // --- 优化坐标轴时间刻度格式 ---
+                axisLabel: {
+                    formatter: function (value) {
+                        var date = new Date(value);
+                        return (date.getMonth() + 1) + '/' + date.getDate() + ' ' +
+                               ('0' + date.getHours()).slice(-2) + ':' + ('0' + date.getMinutes()).slice(-2);
+                    }
+                }
+            },
+            yAxis: {
+                scale: true,
+                splitArea: { show: false },
+                axisLabel: {
+                    color: '#e0e0e0'
+                },
+                splitLine: {
+                    lineStyle: {
+                        color: '#444' // 分割线颜色
+                    }
+                }
+            },
+            dataZoom: [
+                { type: 'inside', start: 0, end: 100 }, // 默认显示全部数据
+                { show: true, type: 'slider', top: '90%', start: 0, end: 100,
+                  textStyle: {
+                      color: '#e0e0e0'
+                  }
+                }
+            ],
+            series: [
+                {
+                    type: 'candlestick',
+                    name: 'K线', // 更正为“K线”
+                    data: chartData.data,
+                    itemStyle: {
+                        color: '#ef232a', // 阳线颜色 (红色)
+                        color0: '#14b143',// 阴线颜色 (绿色)
+                        borderColor: '#ef232a',
+                        borderColor0: '#14b143'
+                    }
+                }
+            ]
+        };
+
+        option && myChart.setOption(option);
+    </script>
+</body>
+</html>
