@@ -1,0 +1,14 @@
+{
+  "api_url": {
+    "description": "Mihomo 控制器 API 地址 (例如 http://127.0.0.1:9090)",
+    "type": "string",
+    "default": "http://127.0.0.1:9090",
+    "hint": "请确保末尾不要带斜杠"
+  },
+  "api_secret": {
+    "description": "API Secret (密钥)",
+    "type": "string",
+    "default": "",
+    "hint": "如果在 config.yaml 中设置了 secret，请在此处填写"
+  }
+}

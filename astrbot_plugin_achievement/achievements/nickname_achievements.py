@@ -11,6 +11,7 @@ async def check_has_nickname(apis: dict, user_id: str) -> bool:
     # 只要成功设置过一次（无论当前是否拥有昵称），都算达成
     return stats and stats.get("success_count", 0) > 0
 
+
 async def check_rename_success_3(apis: dict, user_id: str) -> bool:
     """检查用户改名成功次数是否超过3次"""
     nickname_api = apis.get("nickname_api")
@@ -20,6 +21,7 @@ async def check_rename_success_3(apis: dict, user_id: str) -> bool:
     # 确保用户有统计数据，并且成功次数 > 3
     return stats and stats.get("success_count", 0) > 3
 
+
 async def check_rename_success_10(apis: dict, user_id: str) -> bool:
     """检查用户改名成功次数是否超过10次"""
     nickname_api = apis.get("nickname_api")
@@ -28,6 +30,7 @@ async def check_rename_success_10(apis: dict, user_id: str) -> bool:
     stats = await nickname_api.get_user_stats(user_id)
     return stats and stats.get("success_count", 0) > 10
 
+
 async def check_rename_fail_10(apis: dict, user_id: str) -> bool:
     """检查用户改名失败次数是否超过10次"""
     nickname_api = apis.get("nickname_api")
@@ -35,6 +38,7 @@ async def check_rename_fail_10(apis: dict, user_id: str) -> bool:
         return False
     stats = await nickname_api.get_user_stats(user_id)
     return stats and stats.get("fail_count", 0) > 10
+
 
 # --- 成就列表定义 ---
 

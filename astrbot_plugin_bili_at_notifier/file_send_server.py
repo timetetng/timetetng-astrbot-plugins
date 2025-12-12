@@ -47,6 +47,7 @@ async def send_file(filename, HOST, PORT):
     except Exception as e:
         print(f"传输失败: {e}")
 
+
 async def recv_all(reader, n):
     data = bytearray()
     while len(data) < n:
@@ -55,10 +56,3 @@ async def recv_all(reader, n):
             return None
         data.extend(packet)
     return data
-
-# if __name__ == "__main__":
-#     file_path = input("请输入要发送的文件路径: ")
-#     if os.path.isfile(file_path):
-#         asyncio.run(send_file(file_path, 'localhost', 3658))
-#     else:
-#         print("错误: 文件不存在")

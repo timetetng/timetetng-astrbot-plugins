@@ -6,39 +6,41 @@ import re
 
 from PIL import Image, ImageDraw, ImageFont
 
-# 注意：删除了 urllib.request 的导入
 
 class AchievementGenerator:
     """
     一个功能强大的 Minecraft 风格成就图片生成器。
     负责生成单个成就的图片对象。
     """
+
     DEFAULT_COLORS = {
-        "bg": (42, 42, 42, 220), "desc": (255, 255, 255),
-        "border_dark": (25, 25, 25, 255), "border_light": (85, 85, 85, 255),
-        "shadow": (10, 10, 10, 255)
+        "bg": (42, 42, 42, 220),
+        "desc": (255, 255, 255),
+        "border_dark": (25, 25, 25, 255),
+        "border_light": (85, 85, 85, 255),
+        "shadow": (10, 10, 10, 255),
     }
 
     TITLE_COLORS = {
-        "common":    (255, 255, 255),   # 普通: 白色
-        "rare":      (100, 180, 255),   # 稀有: 蓝色
-        "epic":      (200, 100, 255),   # 史诗: 紫色
-        "legendary": (255, 170, 50),    # 传说: 橙色
-        "mythic":    (255, 85, 85),     # 神话: 红色
-        "miracle":   (255, 235, 100),   # 奇迹: 亮金色
-        "flawless":  "gradient",        # 无瑕: 渐变色
-        "locked":    (120, 120, 120)    # 未解锁: 灰色
+        "common": (255, 255, 255),  # 普通: 白色
+        "rare": (100, 180, 255),  # 稀有: 蓝色
+        "epic": (200, 100, 255),  # 史诗: 紫色
+        "legendary": (255, 170, 50),  # 传说: 橙色
+        "mythic": (255, 85, 85),  # 神话: 红色
+        "miracle": (255, 235, 100),  # 奇迹: 亮金色
+        "flawless": "gradient",  # 无瑕: 渐变色
+        "locked": (120, 120, 120),  # 未解锁: 灰色
     }
     FLAWLESS_GRADIENT_COLORS = [(255, 205, 26), (255, 46, 157)]
 
-    def __init__(self, font_path, icon_cache_manager): # <-- 修改点
+    def __init__(self, font_path, icon_cache_manager):  # <-- 修改点
         if not os.path.exists(font_path):
             raise FileNotFoundError(f"字体文件未找到: {font_path}")
 
         self.font_path = font_path
         self.title_font = ImageFont.truetype(self.font_path, 16)
         self.desc_font = ImageFont.truetype(self.font_path, 16)
-        self.icon_cache = icon_cache_manager # <-- 新增
+        self.icon_cache = icon_cache_manager  # <-- 新增
 
         # --- 可配置参数 ---
         self.content_width = 320
@@ -56,10 +58,14 @@ class AchievementGenerator:
         return re.sub(r"§.", "", text)
 
     def _pixelate_icon(self, icon_image: Image.Image) -> Image.Image:
-        icon = icon_image.resize((self.icon_size, self.icon_size), Image.Resampling.NEAREST)
+        icon = icon_image.resize(
+            (self.icon_size, self.icon_size), Image.Resampling.NEAREST
+        )
         return icon.convert("RGBA")
 
-    def _draw_text_custom(self, draw, pos, text, font, fill, shadow_color, char_spacing=0, line_spacing=4):
+    def _draw_text_custom(
+        self, draw, pos, text, font, fill, shadow_color, char_spacing=0, line_spacing=4
+    ):
         x, y = pos
         lines = text.split("\n")
         font_height_bbox = font.getbbox("Tg")
@@ -84,20 +90,28 @@ class AchievementGenerator:
                 draw.text((current_x + 1, y + 1), char, font=font, fill=shadow_color)
                 draw.text((current_x, y), char, font=font, fill=char_color)
 
-                char_width = draw.textbbox((0,0), char, font=font)[2]
+                char_width = draw.textbbox((0, 0), char, font=font)[2]
                 current_x += char_width + char_spacing
 
             y += font_height + line_spacing
 
-    def _wrap_text_by_pixel(self, text: str, max_width: int, font: ImageFont.FreeTypeFont, draw_context: ImageDraw.ImageDraw, char_spacing=0) -> str:
+    def _wrap_text_by_pixel(
+        self,
+        text: str,
+        max_width: int,
+        font: ImageFont.FreeTypeFont,
+        draw_context: ImageDraw.ImageDraw,
+        char_spacing=0,
+    ) -> str:
         words = re.findall(r"[a-zA-Z0-9]+|\s+|[^\s\da-zA-Z]", text)
         lines = []
         current_line = ""
         for word in words:
-            if not current_line and word.isspace(): continue
+            if not current_line and word.isspace():
+                continue
             test_line = current_line + word
             bbox = draw_context.textbbox((0, 0), test_line, font=font)
-            line_width = (bbox[2] - bbox[0])
+            line_width = bbox[2] - bbox[0]
             if len(test_line) > 1:
                 line_width += (len(test_line) - 1) * char_spacing
 
@@ -110,12 +124,16 @@ class AchievementGenerator:
             lines.append(current_line.strip())
         return "\n".join(lines)
 
-    async def create(self, title: str, description: str, icon_path: str, # <-- 修改点
-               theme: str = "common",
-               output_path: str = None,
-               output_format: str = "file",
-               wrap_text: bool = True):
-
+    async def create(
+        self,
+        title: str,
+        description: str,
+        icon_path: str,  # <-- 修改点
+        theme: str = "common",
+        output_path: str = None,
+        output_format: str = "file",
+        wrap_text: bool = True,
+    ):
         title = self._strip_minecraft_codes(title)
         description = self._strip_minecraft_codes(description)
 
@@ -126,14 +144,21 @@ class AchievementGenerator:
 
         text_x = self.padding + self.icon_size + self.padding
         max_text_width = self.content_width - text_x - self.padding
-        temp_img = Image.new("RGB", (1,1)); temp_draw = ImageDraw.Draw(temp_img)
+        temp_img = Image.new("RGB", (1, 1))
+        temp_draw = ImageDraw.Draw(temp_img)
 
         if wrap_text:
-            wrapped_desc = self._wrap_text_by_pixel(description, max_text_width, self.desc_font, temp_draw, char_spacing=self.desc_char_spacing)
+            wrapped_desc = self._wrap_text_by_pixel(
+                description,
+                max_text_width,
+                self.desc_font,
+                temp_draw,
+                char_spacing=self.desc_char_spacing,
+            )
         else:
             wrapped_desc = description
 
-        title_bbox = temp_draw.textbbox((0,0), title, font=self.title_font)
+        title_bbox = temp_draw.textbbox((0, 0), title, font=self.title_font)
         title_height = title_bbox[3] - title_bbox[1]
 
         desc_height = 0
@@ -141,20 +166,43 @@ class AchievementGenerator:
             num_lines = len(wrapped_desc.split("\n"))
             font_height_bbox = self.desc_font.getbbox("Tg")
             font_height = font_height_bbox[3] - font_height_bbox[1]
-            desc_height = (num_lines * font_height) + (num_lines - 1) * self.text_spacing
+            desc_height = (num_lines * font_height) + (
+                num_lines - 1
+            ) * self.text_spacing
 
-        total_text_height = title_height + (self.text_spacing + desc_height if wrapped_desc else 0)
-        content_height = max(self.min_content_height, total_text_height + self.padding * 2)
+        total_text_height = title_height + (
+            self.text_spacing + desc_height if wrapped_desc else 0
+        )
+        content_height = max(
+            self.min_content_height, total_text_height + self.padding * 2
+        )
         total_height = content_height + self.border_width * 2
         total_width = self.content_width + self.border_width * 2
 
         final_image = Image.new("RGBA", (total_width, total_height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(final_image)
-        draw.rounded_rectangle((0, 0, total_width, total_height), fill=colors["border_dark"], radius=self.corner_radius + self.border_width)
-        draw.rounded_rectangle((1, 1, total_width - 1, total_height - 1), fill=colors["border_light"], radius=self.corner_radius + self.border_width - 1)
-        draw.rounded_rectangle((self.border_width, self.border_width, total_width - self.border_width, total_height - self.border_width), fill=colors["bg"], radius=self.corner_radius)
+        draw.rounded_rectangle(
+            (0, 0, total_width, total_height),
+            fill=colors["border_dark"],
+            radius=self.corner_radius + self.border_width,
+        )
+        draw.rounded_rectangle(
+            (1, 1, total_width - 1, total_height - 1),
+            fill=colors["border_light"],
+            radius=self.corner_radius + self.border_width - 1,
+        )
+        draw.rounded_rectangle(
+            (
+                self.border_width,
+                self.border_width,
+                total_width - self.border_width,
+                total_height - self.border_width,
+            ),
+            fill=colors["bg"],
+            radius=self.corner_radius,
+        )
 
-        # --- 全新的、基于缓存的图标处理逻辑 ---
+        # 基于缓存的图标处理逻辑
         try:
             local_icon_path = icon_path
             # 1. 如果是网络路径，则通过缓存管理器获取本地路径
@@ -166,25 +214,55 @@ class AchievementGenerator:
                 with Image.open(local_icon_path) as raw_icon:
                     pixelated_icon = self._pixelate_icon(raw_icon)
                     icon_y = (total_height - self.icon_size) // 2
-                    final_image.paste(pixelated_icon, (self.padding + self.border_width, icon_y), pixelated_icon)
+                    final_image.paste(
+                        pixelated_icon,
+                        (self.padding + self.border_width, icon_y),
+                        pixelated_icon,
+                    )
             else:
-                 # 如果路径为空或文件不存在（可能缓存也失败了），则不显示图标
-                 print(f"Warning: Icon path is invalid or file does not exist: {local_icon_path}")
+                # 如果路径为空或文件不存在（可能缓存也失败了），则不显示图标
+                print(
+                    f"Warning: Icon path is invalid or file does not exist: {local_icon_path}"
+                )
 
         except Exception as e:
             # 静默处理，避免因一个图标错误导致整个功能崩溃
             print(f"Warning: Failed to process icon from {icon_path}. Error: {e}")
             pass
-        # --- 图标处理逻辑结束 ---
 
         text_start_y = (total_height - total_text_height) // 2
         title_pos = (text_x + self.border_width, text_start_y + self.title_y_adjust)
-        desc_pos = (text_x + self.border_width, text_start_y + title_height + self.text_spacing)
+        desc_pos = (
+            text_x + self.border_width,
+            text_start_y + title_height + self.text_spacing,
+        )
 
-        fill_color = self.FLAWLESS_GRADIENT_COLORS if title_color_or_flag == "gradient" else title_color_or_flag
-        self._draw_text_custom(draw, title_pos, title, self.title_font, fill_color, colors["shadow"], char_spacing=self.title_char_spacing, line_spacing=self.text_spacing)
+        fill_color = (
+            self.FLAWLESS_GRADIENT_COLORS
+            if title_color_or_flag == "gradient"
+            else title_color_or_flag
+        )
+        self._draw_text_custom(
+            draw,
+            title_pos,
+            title,
+            self.title_font,
+            fill_color,
+            colors["shadow"],
+            char_spacing=self.title_char_spacing,
+            line_spacing=self.text_spacing,
+        )
         if wrapped_desc:
-            self._draw_text_custom(draw, desc_pos, wrapped_desc, self.desc_font, colors["desc"], colors["shadow"], char_spacing=self.desc_char_spacing, line_spacing=self.text_spacing)
+            self._draw_text_custom(
+                draw,
+                desc_pos,
+                wrapped_desc,
+                self.desc_font,
+                colors["desc"],
+                colors["shadow"],
+                char_spacing=self.desc_char_spacing,
+                line_spacing=self.text_spacing,
+            )
 
         if output_format == "file":
             final_image.save(output_path)
@@ -196,7 +274,9 @@ class AchievementGenerator:
             final_image.save(buffer, format="PNG")
             return base64.b64encode(buffer.getvalue()).decode("utf-8")
         else:
-            raise ValueError(f"未知的 output_format: '{output_format}'。请使用 'file', 'object', 或 'base64'。")
+            raise ValueError(
+                f"未知的 output_format: '{output_format}'。请使用 'file', 'object', 或 'base64'。"
+            )
 
 
 class AchievementBoardGenerator:
@@ -204,11 +284,24 @@ class AchievementBoardGenerator:
     成就看板生成器。
     使用 AchievementGenerator 生成所有独立的成就图片，然后将它们拼接成一个总览图。
     """
-    RARITY_ORDER = ["flawless", "miracle", "mythic", "legendary", "epic", "rare", "common"]
+
+    RARITY_ORDER = [
+        "flawless",
+        "miracle",
+        "mythic",
+        "legendary",
+        "epic",
+        "rare",
+        "common",
+    ]
     RARITY_NAMES = {
-        "common": "普通 Common", "rare": "稀有 Rare", "epic": "史诗 Epic",
-        "legendary": "传说 Legendary", "mythic": "神话 Mythic",
-        "miracle": "奇迹 Miracle", "flawless": "无瑕 Flawless"
+        "common": "普通 Common",
+        "rare": "稀有 Rare",
+        "epic": "史诗 Epic",
+        "legendary": "传说 Legendary",
+        "mythic": "神话 Mythic",
+        "miracle": "奇迹 Miracle",
+        "flawless": "无瑕 Flawless",
     }
 
     def __init__(self, generator: AchievementGenerator, font_path: str):
@@ -216,7 +309,7 @@ class AchievementBoardGenerator:
         self.board_font_title = ImageFont.truetype(font_path, 32)
         self.board_font_rarity = ImageFont.truetype(font_path, 24)
         self.board_font_progress = ImageFont.truetype(font_path, 18)
-        self.lock_icon_path = "lock_icon.png" # 确保此文件存在于插件根目录
+        self.lock_icon_path = "lock_icon.png"  # 确保此文件存在于插件根目录
         # --- 可配置参数 ---
         self.board_width = 750
         self.padding = 20
@@ -244,23 +337,36 @@ class AchievementBoardGenerator:
                     char_color = (r, g, b)
                 else:
                     char_color = start_color
-                draw.text((current_x, pos[1]), char, font=self.board_font_rarity, fill=char_color)
-                char_width = draw.textbbox((0,0), char, font=self.board_font_rarity)[2]
+                draw.text(
+                    (current_x, pos[1]),
+                    char,
+                    font=self.board_font_rarity,
+                    fill=char_color,
+                )
+                char_width = draw.textbbox((0, 0), char, font=self.board_font_rarity)[2]
                 current_x += char_width
         else:
             draw.text(pos, text, font=self.board_font_rarity, fill=color_or_flag)
 
     def _prepare_assets(self, create_if_missing=False):
         if not os.path.exists(self.lock_icon_path) and create_if_missing:
-            lock_img = Image.new("RGBA", (32, 32), (0,0,0,0))
+            lock_img = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
             d = ImageDraw.Draw(lock_img)
-            d.rectangle([(8, 14), (24, 30)], fill=(80,80,80))
-            d.pieslice([(4,6),(28,24)], 180, 0, fill=(100,100,100))
-            d.pieslice([(8,6),(24,24)], 180, 0, fill=self.bg_color)
+            d.rectangle([(8, 14), (24, 30)], fill=(80, 80, 80))
+            d.pieslice([(4, 6), (28, 24)], 180, 0, fill=(100, 100, 100))
+            d.pieslice([(8, 6), (24, 24)], 180, 0, fill=self.bg_color)
             lock_img.save(self.lock_icon_path)
 
-    async def create_board(self, user_name: str, all_achievements: dict, unlocked_ids: list, unlocked_count: int, total_count: int, output_path: str): # <-- 修改点
-        self._prepare_assets(create_if_missing=True) # 自动创建锁图标
+    async def create_board(
+        self,
+        user_name: str,
+        all_achievements: dict,
+        unlocked_ids: list,
+        unlocked_count: int,
+        total_count: int,
+        output_path: str,
+    ):  # <-- 修改点
+        self._prepare_assets(create_if_missing=True)  # 自动创建锁图标
 
         ach_by_rarity = {rarity: [] for rarity in self.RARITY_ORDER}
         for ach_id, ach_data in all_achievements.items():
@@ -273,12 +379,15 @@ class AchievementBoardGenerator:
         title_bbox = self.board_font_title.getbbox(f"成就殿堂 - {user_name}")
         total_height += title_bbox[3] - title_bbox[1] + self.section_spacing
 
-        single_ach_img = await self.generator.create("a", "b", self.lock_icon_path, output_format="object") # <-- 修改点
+        single_ach_img = await self.generator.create(
+            "a", "b", self.lock_icon_path, output_format="object"
+        )  # <-- 修改点
 
         ach_width, ach_height = single_ach_img.size
         for rarity in self.RARITY_ORDER:
             ach_list = ach_by_rarity.get(rarity, [])
-            if not ach_list: continue
+            if not ach_list:
+                continue
 
             rarity_bbox = self.board_font_rarity.getbbox(self.RARITY_NAMES[rarity])
             total_height += rarity_bbox[3] - rarity_bbox[1] + self.grid_spacing_y
@@ -294,10 +403,17 @@ class AchievementBoardGenerator:
 
         # --- 绘制标题和进度 ---
         title_text = f"成就殿堂 - {user_name}"
-        draw.text((self.padding, current_y), title_text, font=self.board_font_title, fill=self.title_color)
+        draw.text(
+            (self.padding, current_y),
+            title_text,
+            font=self.board_font_title,
+            fill=self.title_color,
+        )
 
         progress_text = f"已解锁 ({unlocked_count}/{total_count})"
-        progress_bbox = draw.textbbox((0, 0), progress_text, font=self.board_font_progress)
+        progress_bbox = draw.textbbox(
+            (0, 0), progress_text, font=self.board_font_progress
+        )
         progress_width = progress_bbox[2] - progress_bbox[0]
         progress_height = progress_bbox[3] - progress_bbox[1]
 
@@ -306,15 +422,23 @@ class AchievementBoardGenerator:
         progress_x = self.board_width - self.padding - progress_width
         progress_y = current_y + (title_height - progress_height)
 
-        draw.text((progress_x, progress_y), progress_text, font=self.board_font_progress, fill=self.progress_text_color)
+        draw.text(
+            (progress_x, progress_y),
+            progress_text,
+            font=self.board_font_progress,
+            fill=self.progress_text_color,
+        )
 
         current_y += title_height + self.section_spacing
 
         for rarity in self.RARITY_ORDER:
             ach_list = ach_by_rarity.get(rarity, [])
-            if not ach_list: continue
+            if not ach_list:
+                continue
 
-            self._draw_rarity_title(draw, (self.padding, current_y), self.RARITY_NAMES[rarity], rarity)
+            self._draw_rarity_title(
+                draw, (self.padding, current_y), self.RARITY_NAMES[rarity], rarity
+            )
             rarity_bbox = self.board_font_rarity.getbbox(self.RARITY_NAMES[rarity])
             current_y += rarity_bbox[3] - rarity_bbox[1] + self.grid_spacing_y
 
@@ -323,9 +447,21 @@ class AchievementBoardGenerator:
                 is_unlocked = ach_id in unlocked_ids
 
                 if is_unlocked:
-                    img = await self.generator.create(ach_data["title"], ach_data["description"], ach_data["icon_path"], theme=rarity, output_format="object") # <-- 修改点
+                    img = await self.generator.create(
+                        ach_data["title"],
+                        ach_data["description"],
+                        ach_data["icon_path"],
+                        theme=rarity,
+                        output_format="object",
+                    )  # <-- 修改点
                 else:
-                    img = await self.generator.create("??????", "条件尚未达成", self.lock_icon_path, theme="locked", output_format="object") # <-- 修改点
+                    img = await self.generator.create(
+                        "??????",
+                        "条件尚未达成",
+                        self.lock_icon_path,
+                        theme="locked",
+                        output_format="object",
+                    )  # <-- 修改点
 
                 if img:
                     x = self.padding + (col_count * (ach_width + self.grid_spacing_x))

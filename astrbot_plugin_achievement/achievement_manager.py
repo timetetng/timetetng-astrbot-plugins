@@ -8,11 +8,23 @@ from astrbot.api import logger  # 导入 AstrBot 的 logger
 class AchievementManager:
     def __init__(self):
         self.achievements: dict[str, dict[str, Any]] = {}
-        self.rarity_list = ["common", "rare", "epic", "legendary", "mythic", "miracle", "flawless"]
+        self.rarity_list = [
+            "common",
+            "rare",
+            "epic",
+            "legendary",
+            "mythic",
+            "miracle",
+            "flawless",
+        ]
         self.RARITY_NAMES = {
-            "common": "普通", "rare": "稀有", "epic": "史诗",
-            "legendary": "传说", "mythic": "神话",
-            "miracle": "奇迹", "flawless": "无瑕"
+            "common": "普通",
+            "rare": "稀有",
+            "epic": "史诗",
+            "legendary": "传说",
+            "mythic": "神话",
+            "miracle": "奇迹",
+            "flawless": "无瑕",
         }
 
     def load_achievements(self, directory: str) -> tuple[int, int]:
@@ -55,37 +67,50 @@ class AchievementManager:
                     importlib.reload(module)
 
                     if not hasattr(module, "ACHIEVEMENTS"):
-                        logger.warning(f"加载失败: 文件 '{filename}' 中未定义 'ACHIEVEMENTS' 列表。")
+                        logger.warning(
+                            f"加载失败: 文件 '{filename}' 中未定义 'ACHIEVEMENTS' 列表。"
+                        )
                         failed_files += 1
                         continue
 
                     ach_list = getattr(module, "ACHIEVEMENTS")
 
                     if not isinstance(ach_list, list):
-                        logger.warning(f"加载失败: 文件 '{filename}' 中的 'ACHIEVEMENTS' 不是一个列表 (list)。")
+                        logger.warning(
+                            f"加载失败: 文件 '{filename}' 中的 'ACHIEVEMENTS' 不是一个列表 (list)。"
+                        )
                         failed_files += 1
                         continue
 
                     loaded_count = 0
                     for ach_data in ach_list:
                         if not isinstance(ach_data, dict) or "id" not in ach_data:
-                            logger.warning(f"跳过加载: 文件 '{filename}' 中存在格式错误（非字典或无id）的成就项。")
+                            logger.warning(
+                                f"跳过加载: 文件 '{filename}' 中存在格式错误（非字典或无id）的成就项。"
+                            )
                             continue
 
                         ach_id = ach_data["id"]
                         if ach_id in self.achievements:
-                            logger.warning(f"跳过加载: 文件 '{filename}' 中成就ID '{ach_id}' 与已加载的成就重复。")
+                            logger.warning(
+                                f"跳过加载: 文件 '{filename}' 中成就ID '{ach_id}' 与已加载的成就重复。"
+                            )
                             continue
 
                         self.achievements[ach_id] = ach_data
                         loaded_count += 1
 
                     if loaded_count > 0:
-                        logger.info(f"成功加载成就文件: '{filename}' (共 {loaded_count} 个成就)。")
+                        logger.info(
+                            f"成功加载成就文件: '{filename}' (共 {loaded_count} 个成就)。"
+                        )
                         successful_files += 1
 
                 except Exception as e:
-                    logger.error(f"加载成就文件 '{filename}' 时发生严重错误，该文件被跳过。错误: {e}", exc_info=True)
+                    logger.error(
+                        f"加载成就文件 '{filename}' 时发生严重错误，该文件被跳过。错误: {e}",
+                        exc_info=True,
+                    )
                     failed_files += 1
         # --- 修改结束 ---
 

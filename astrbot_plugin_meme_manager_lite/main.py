@@ -16,7 +16,7 @@ from astrbot.core.star.star_tools import StarTools
     "astrbot_plugin_meme_manager_lite",
     "timetetng",
     "允许LLM在回答中使用表情包 轻量级！添加函数工具",
-    "3.0",  # 版本号更新，体现架构变化
+    "3.0",
     "https://github.com/timetetng/astrbot_plugin_meme_manager_lite",
 )
 class StickerManagerLitePlugin(Star):
@@ -220,7 +220,6 @@ class StickerManagerLitePlugin(Star):
                         sticker_name = name_match.group(1)
                         image_path = self._get_sticker_image_path(sticker_name)
 
-                        # 【核心判断逻辑】
                         # 如果标签包含 force="true"，或者随机概率命中
                         if image_path and (
                             force_match

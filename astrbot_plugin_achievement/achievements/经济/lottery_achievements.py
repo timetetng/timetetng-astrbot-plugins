@@ -3,27 +3,36 @@
 
 # --- 检查函数定义 ---
 
+
 async def check_bad_luck_on_good_fortune(apis: dict, user_id: str) -> bool:
     """检查：连续三次在运势为大吉的情况下抽到负面奖励"""
     economy_api = apis.get("economy_api")
-    if not economy_api: return False
+    if not economy_api:
+        return False
 
     history = await economy_api.get_lottery_history(user_id, limit=3)
-    if len(history) < 3: return False
+    if len(history) < 3:
+        return False
 
     # 检查最近3次记录是否都满足条件
     for record in history:
-        if not (record.get("fortune_at_time") == "大吉" and record.get("prize_won") < record.get("bet_amount")):
+        if not (
+            record.get("fortune_at_time") == "大吉"
+            and record.get("prize_won") < record.get("bet_amount")
+        ):
             return False
     return True
+
 
 async def check_fortune_reversal(apis: dict, user_id: str) -> bool:
     """检查：上一次运势是大吉，下一次（最近一次）运势是凶"""
     economy_api = apis.get("economy_api")
-    if not economy_api: return False
+    if not economy_api:
+        return False
 
     history = await economy_api.get_fortune_history(user_id, limit=2)
-    if len(history) < 2: return False
+    if len(history) < 2:
+        return False
 
     # API返回的列表，索引0是最新的记录
     latest_fortune = history[0].get("fortune_result")
@@ -31,13 +40,16 @@ async def check_fortune_reversal(apis: dict, user_id: str) -> bool:
 
     return latest_fortune == "凶" and previous_fortune == "大吉"
 
+
 async def check_good_luck_on_bad_fortune(apis: dict, user_id: str) -> bool:
     """检查：连续3次在运势为凶时抽出2以上倍率"""
     economy_api = apis.get("economy_api")
-    if not economy_api: return False
+    if not economy_api:
+        return False
 
     history = await economy_api.get_lottery_history(user_id, limit=3)
-    if len(history) < 3: return False
+    if len(history) < 3:
+        return False
 
     for record in history:
         try:
@@ -50,37 +62,46 @@ async def check_good_luck_on_bad_fortune(apis: dict, user_id: str) -> bool:
             return False
     return True
 
+
 async def check_lucky_streak(apis: dict, user_id: str, streak_length: int) -> bool:
     """通用检查函数：检查连续N次抽奖结果为正面"""
     economy_api = apis.get("economy_api")
-    if not economy_api: return False
+    if not economy_api:
+        return False
 
     history = await economy_api.get_lottery_history(user_id, limit=streak_length)
-    if len(history) < streak_length: return False
+    if len(history) < streak_length:
+        return False
 
     for record in history:
         if record.get("prize_won") < record.get("bet_amount"):
             return False
     return True
 
+
 async def check_fucky_streak(apis: dict, user_id: str, streak_length: int) -> bool:
     """通用检查函数：检查连续N次抽奖结果为负面"""
     economy_api = apis.get("economy_api")
-    if not economy_api: return False
+    if not economy_api:
+        return False
 
     history = await economy_api.get_lottery_history(user_id, limit=streak_length)
-    if len(history) < streak_length: return False
+    if len(history) < streak_length:
+        return False
 
     for record in history:
         if record.get("prize_won") >= record.get("bet_amount"):
             return False
     return True
 
+
 async def check_lucky_streak_6(apis: dict, user_id: str) -> bool:
     return await check_lucky_streak(apis, user_id, 6)
 
+
 async def check_lucky_streak_10(apis: dict, user_id: str) -> bool:
     return await check_lucky_streak(apis, user_id, 10)
+
 
 async def check_fucky_streak_10(apis: dict, user_id: str) -> bool:
     return await check_fucky_streak(apis, user_id, 10)
@@ -167,10 +188,10 @@ ACHIEVEMENTS = [
         "id": "lottery_near_zero_multiplier",
         "title": "其实它...比奖池难出",
         "description": "在一次抽奖中倍率低于0.01x",
-        "icon_path": "https://img.icons8.com/fluency/96/wind.png", # 找了一个风的图标来代表“空气”
+        "icon_path": "https://img.icons8.com/fluency/96/wind.png",  # 找了一个风的图标来代表“空气”
         "rarity": "legendary",
         "reward_coins": 1000,
-        "hidden": True, # 这是一个隐藏成就
+        "hidden": True,  # 这是一个隐藏成就
         "check_func": None,
     },
 ]

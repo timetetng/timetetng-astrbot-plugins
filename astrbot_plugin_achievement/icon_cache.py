@@ -14,7 +14,13 @@ class IconCacheManager:
     - 使用 URL 的哈希值作为文件名，确保唯一性。
     - 如果下载失败，提供一个默认的失败图标路径。
     """
-    def __init__(self, cache_dir: str, aiohttp_session: aiohttp.ClientSession, fallback_icon_path: str):
+
+    def __init__(
+        self,
+        cache_dir: str,
+        aiohttp_session: aiohttp.ClientSession,
+        fallback_icon_path: str,
+    ):
         self.cache_path = Path(cache_dir)
         self.session = aiohttp_session
         self.fallback_icon_path = fallback_icon_path
@@ -29,7 +35,7 @@ class IconCacheManager:
         try:
             path = urlparse(url).path
             ext = Path(path).suffix or ".png"
-            if len(ext) > 5: # 防止过长的后缀
+            if len(ext) > 5:  # 防止过长的后缀
                 ext = ".png"
         except Exception:
             ext = ".png"

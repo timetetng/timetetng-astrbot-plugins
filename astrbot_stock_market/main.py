@@ -104,7 +104,7 @@ class StockMarketRefactored(Star):
 
     async def terminate(self):
         logger.info("开始关闭模拟炒股插件...")
-        shared_services.pop("stock_market_api", None)  # <--- 修改此行
+        shared_services.pop("stock_market_api", None)
         if self.init_task and not self.init_task.done():
             self.init_task.cancel()
         if self.simulation_manager:
@@ -313,7 +313,6 @@ class StockMarketRefactored(Star):
 
             # --- 【字体加载与名称获取】 ---
             script_path = Path(__file__).resolve().parent
-            # 假设字体文件在 'astrbot_stock_market/static/fonts/SimHei.ttf'
             font_path = script_path / "static" / "fonts" / "SimHei.ttf"
             if not os.path.exists(font_path):
                 logger.error(f"致命错误：字体文件未找到于 '{font_path}'")
@@ -932,7 +931,6 @@ class StockMarketRefactored(Star):
             return
 
         user_id = event.get_sender_id()
-        # 【修正】调用 trading_manager
         success, message = await self.trading_manager.perform_buy(
             user_id, identifier, quantity
         )
@@ -963,7 +961,6 @@ class StockMarketRefactored(Star):
             return
 
         user_id = event.get_sender_id()
-        # 【修正】调用 trading_manager
         success, message, _ = await self.trading_manager.perform_sell(
             user_id, identifier, quantity_to_sell
         )
@@ -1333,8 +1330,6 @@ class StockMarketRefactored(Star):
                 f"❌ 未知的参数: '{param}'。\n可用参数: `name`, `stock_id`, `industry`, `volatility`"
             )
 
-    # 替换 main.py 中的 admin_set_price 函数
-
     @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("设置股价", alias={"修改股价"})
     async def admin_set_price(
@@ -1357,14 +1352,11 @@ class StockMarketRefactored(Star):
         old_price = stock.current_price
         stock_id = stock.stock_id
 
-        # 1. 更新内存中的价格
         stock.current_price = new_price
         stock.price_history.append(new_price)
 
-        # 2. 【修正】调用 db_manager 更新数据库
         await self.db_manager.update_stock_price(stock_id, new_price)
 
-        # 3. 发送成功确认信息
         yield event.plain_result(
             f"✅ 操作成功！\n"
             f"已将股票 {stock.name} ({stock_id}) 的价格\n"
@@ -1410,7 +1402,6 @@ class StockMarketRefactored(Star):
         await self._ready_event.wait()
 
         try:
-            # 【修正】调用 db_manager
             stock_data = await self.db_manager.get_all_stocks_with_details()
         except Exception as e:
             logger.error(f"查询数据库股票列表时出错: {e}", exc_info=True)
@@ -1457,7 +1448,6 @@ class StockMarketRefactored(Star):
             yield event.plain_result("✅ 您已订阅市场快讯，无需重复操作。")
         else:
             try:
-                # 【修正】调用 db_manager
                 await self.db_manager.add_subscriber(umo)
 
                 self.broadcast_subscribers.add(umo)
@@ -1476,7 +1466,6 @@ class StockMarketRefactored(Star):
         umo = event.unified_msg_origin
         if umo in self.broadcast_subscribers:
             try:
-                # 【修正】调用 db_manager
                 await self.db_manager.remove_subscriber(umo)
 
                 self.broadcast_subscribers.remove(umo)
@@ -1492,8 +1481,6 @@ class StockMarketRefactored(Star):
         """
         [新版] 获取单个用户的资产排名和总上榜人数 (利用现有的 get_total_asset_ranking API)。
         """
-        # 调用您现有的方法获取一个足够长的排行榜，以确保目标用户在其中。
-        # 通过设置一个超大的 limit 值，我们实际上就获取了完整的排行榜。
         try:
             full_ranking = await self.get_total_asset_ranking(limit=999999)
         except Exception as e:
@@ -1518,7 +1505,7 @@ class StockMarketRefactored(Star):
     async def my_total_asset(self, event: AstrMessageEvent):
         """查询当前用户或@用户的个人总资产详情 (金币+股票+公司+银行)，并显示其全服排名"""
         try:
-            # ID获取逻辑 (保持不变)
+            # ID获取
             target_user_id = None
             for component in event.message_obj.message:
                 if isinstance(component, Comp.At):
@@ -1527,7 +1514,7 @@ class StockMarketRefactored(Star):
             if not target_user_id:
                 target_user_id = event.get_sender_id()
 
-            # 并行获取资产详情和排名 (逻辑不变)
+            # 并行获取资产详情和排名
             asset_details_task = self.get_user_total_asset(target_user_id)
             asset_rank_task = self.get_user_asset_rank(target_user_id)
 
@@ -1539,8 +1526,6 @@ class StockMarketRefactored(Star):
                 yield event.plain_result("未能查询到该用户的资产信息。")
                 return
 
-            # --- 核心修改部分 开始 ---
-
             # 数据提取 (新增 bank_deposits 和 bank_loans)
             total_assets = asset_details.get("total_assets", 0)
             coins = asset_details.get("coins", 0)
@@ -1549,7 +1534,6 @@ class StockMarketRefactored(Star):
             bank_deposits = asset_details.get("bank_deposits", 0)  # <--- 新增
             bank_loans = asset_details.get("bank_loans", 0)  # <--- 新增
 
-            # 输出格式化 (逻辑不变)
             is_self_query = target_user_id == event.get_sender_id()
             display_name = target_user_id
             if self.nickname_api:
@@ -1570,21 +1554,19 @@ class StockMarketRefactored(Star):
                 else f"🏆 资产排名: {rank}"
             )
 
-            # 结果文本 (新增“银行存款”和“银行贷款”两行)
+            # 结果文本
             result_text = (
                 f"{title}\n"
                 f"--------------------\n"
                 f"🪙 现金余额: {coins:,.2f}\n"
                 f"📈 股票市值: {stock_value:,.2f}\n"
                 f"🏢 公司资产: {company_assets:,.2f}\n"
-                f"💳 银行存款: {bank_deposits:,.2f}\n"  # <--- 新增
-                f"🚨 银行贷款: {bank_loans:,.2f}\n"  # <--- 新增
+                f"💳 银行存款: {bank_deposits:,.2f}\n"
+                f"🚨 银行贷款: {bank_loans:,.2f}\n"
                 f"--------------------\n"
                 f"🏦 总计资产: {total_assets:,.2f}\n"
                 f"{rank_text}"
             )
-
-            # --- 核心修改部分 结束 ---
 
             yield event.plain_result(result_text)
 
@@ -1638,7 +1620,6 @@ class StockMarketRefactored(Star):
                     or user_id
                 )
 
-                # 【修改】使用新的格式化函数来处理总资产的显示
                 formatted_assets = format_large_number(row["total_assets"])
 
                 entries.append(
@@ -1822,7 +1803,6 @@ async def llm_get_market_overview(self, event: AstrMessageEvent):
     """
     logger.info("LLM 工具 [get_market_overview] 被调用。")
     try:
-        # ... (函数体代码保持不变) ...
         stocks = list(self.stocks.values())
         if not stocks:
             logger.warning("LLM 工具 [get_market_overview]: 市场中没有股票数据。")
@@ -1865,7 +1845,6 @@ async def llm_get_stock_detail(self, event: AstrMessageEvent, stock_code: str):
     """
     logger.info(f"LLM 工具 [get_stock_detail] 被调用，参数 stock_code: {stock_code}")
     try:
-        # ... (函数体代码保持不变) ...
         stock = await self.find_stock(stock_code)
         if not stock:
             logger.warning(f"LLM 工具 [get_stock_detail]: 找不到股票 {stock_code}。")
@@ -1898,7 +1877,6 @@ async def llm_get_user_portfolio(self, event: AstrMessageEvent):
     """
     logger.info("LLM 工具 [get_user_portfolio] 被调用...")
     try:
-        # ... (函数体代码保持不变) ...
         user_id = event.get_sender_id()
         portfolio_task = self.db_manager.get_user_holdings_aggregated(user_id)
         balance_task = self.economy_api.get_coins(user_id)
@@ -1958,7 +1936,6 @@ async def llm_get_user_assets(self, event: AstrMessageEvent):
     """
     logger.info("LLM 工具 [get_user_assets] 被调用...")
     try:
-        # ... (函数体代码保持不变) ...
         user_id = event.get_sender_id()
         balance = await self.economy_api.get_coins(user_id)
         result_data = {"cash_balance": f"{balance:.2f}"}
@@ -2055,7 +2032,6 @@ async def llm_sell_all_stocks(self, event: AstrMessageEvent, stock_code: str = N
     """
     logger.info("LLM 工具 [sell_all_stocks] 被调用...")
     try:
-        # ... (函数体代码保持不变) ...
         user_id = event.get_sender_id()
         if stock_code:
             success, message = await self.trading_manager.perform_sell_all_for_stock(

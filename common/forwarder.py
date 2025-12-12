@@ -3,6 +3,7 @@
 from typing import List
 from astrbot.api.message_components import Node, Nodes, Plain, BaseMessageComponent
 
+
 class Forwarder:
     def __init__(self):
         """
@@ -10,8 +11,8 @@ class Forwarder:
         机器人信息已在此处配置，无需外部传入。
         """
         # --- ↓↓↓ 请确保这里是您自己的机器人信息 ↓↓↓ ---
-        self.bot_uin: str = "3847288780"      # 修改为您的机器人QQ号
-        self.bot_name: str = "菲比"              # 修改为您的机器人昵称
+        self.bot_uin: str = "3847288780"  # 修改为您的机器人QQ号
+        self.bot_name: str = "菲比"  # 修改为您的机器人昵称
         # --- ↑↑↑ 请确保这里是您自己的机器人信息 ↑↑↑ ---
 
     def create_from_text(self, text: str) -> Nodes:
@@ -23,7 +24,7 @@ class Forwarder:
         message = {
             "uin": self.bot_uin,
             "name": self.bot_name,
-            "content": [Plain(text=text)]
+            "content": [Plain(text=text)],
         }
         return self._create_from_messages([message])
 
@@ -39,7 +40,7 @@ class Forwarder:
             message = {
                 "uin": self.bot_uin,
                 "name": self.bot_name,
-                "content": content_list
+                "content": content_list,
             }
             messages.append(message)
         return self._create_from_messages(messages)
@@ -53,7 +54,7 @@ class Forwarder:
             node = Node(
                 uin=msg.get("uin", 0),
                 name=msg.get("name", "未知用户"),
-                content=msg.get("content", [])
+                content=msg.get("content", []),
             )
             node_list.append(node)
         return Nodes(nodes=node_list)

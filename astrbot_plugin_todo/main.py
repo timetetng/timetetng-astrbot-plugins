@@ -25,7 +25,7 @@ class TodoPlugin(Star):
         os.makedirs(self.data_dir, exist_ok=True)
         self.tasks_file = os.path.join(self.data_dir, "tasks.json")
         self.lock = asyncio.Lock()
-        
+
         asyncio.create_task(self._load_and_reschedule_tasks())
 
     async def _load_tasks(self) -> List[Dict[str, Any]]:
@@ -75,18 +75,27 @@ class TodoPlugin(Star):
                         )
                     )
                     pending_tasks.append(task)
-                    logger.info(f"已重新调度任务 '{task['reminder_content']}' (ID: {task['id']})")
+                    logger.info(
+                        f"已重新调度任务 '{task['reminder_content']}' (ID: {task['id']})"
+                    )
                 else:
-                    logger.info(f"任务 '{task['reminder_content']}' (ID: {task['id']}) 已过期，将被清理。")
+                    logger.info(
+                        f"任务 '{task['reminder_content']}' (ID: {task['id']}) 已过期，将被清理。"
+                    )
             except (KeyError, TypeError) as e:
                 logger.warning(f"加载任务失败，任务数据格式不正确: {task}，错误: {e}")
 
         if len(pending_tasks) != len(tasks):
-             await self._save_tasks(pending_tasks)
+            await self._save_tasks(pending_tasks)
         logger.info(f"持久化任务加载完成，重新调度了 {len(pending_tasks)} 个任务。")
 
     async def _send_reminder_task(
-        self, task_id: str, delay: float, umo: str, sender_id: str, reminder_content: str
+        self,
+        task_id: str,
+        delay: float,
+        umo: str,
+        sender_id: str,
+        reminder_content: str,
     ):
         """后台异步任务，用于发送由LLM预设的提醒文案"""
         try:
@@ -94,9 +103,9 @@ class TodoPlugin(Star):
 
             component_list = [
                 Comp.At(qq=sender_id),
-                Comp.Plain(f" {reminder_content}"), # 加一个空格，让@和消息内容分开
+                Comp.Plain(f" {reminder_content}"),  # 加一个空格，让@和消息内容分开
             ]
-            
+
             message_to_send = MessageChain(component_list)
 
             await self.context.send_message(umo, message_to_send)
@@ -135,7 +144,7 @@ class TodoPlugin(Star):
                 "reminder_time": reminder_time.isoformat(),
                 "umo": event.unified_msg_origin,
                 "sender_id": event.get_sender_id(),
-                "reminder_content": reminder_message, # 存储LLM生成的完整文案
+                "reminder_content": reminder_message,  # 存储LLM生成的完整文案
                 "created_at": current_time.isoformat(),
             }
 
@@ -162,4 +171,4 @@ class TodoPlugin(Star):
             return f"任务设置失败：时间格式不正确，我无法理解 '{time_str}'。请确保时间格式为 'YYYY-MM-DD HH:MM:SS'。"
         except Exception as e:
             logger.error(f"设置提醒时发生未知错误: {e}")
-            return f"任务设置失败：发生了一个内部错误，请稍后再试或联系管理员。"
+            return "任务设置失败：发生了一个内部错误，请稍后再试或联系管理员。"

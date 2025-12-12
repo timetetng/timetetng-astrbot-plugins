@@ -1,13 +1,14 @@
 import json
 import os
 
-from astrbot.api import logger
-
 
 class DataManager:
-    def __init__(self, data_path="data/plugin_data/astrbot_plugin_achievement/achievement_progress.json",
-                 unique_data_path="data/plugin_data/astrbot_plugin_achievement/unique_achievements.json",
-                 pending_data_path="data/plugin_data/astrbot_plugin_achievement/pending_notifications.json"):
+    def __init__(
+        self,
+        data_path="data/plugin_data/astrbot_plugin_achievement/achievement_progress.json",
+        unique_data_path="data/plugin_data/astrbot_plugin_achievement/unique_achievements.json",
+        pending_data_path="data/plugin_data/astrbot_plugin_achievement/pending_notifications.json",
+    ):
         self.data_path = data_path
         self.pending_data_path = pending_data_path
         self.unique_data_path = unique_data_path  # 新增：唯一成就的数据文件路径
@@ -82,10 +83,6 @@ class DataManager:
         self.data = {}
         self.unique_data = {}
         self.pending_data = {}
-
-        # --- 新增诊断日志 ---
-        logger.info(f"[诊断] DataManager 内存已清空: data={self.data}, unique_data={self.unique_data}")
-
         self.save()
         self.save_unique()
         self.save_pending()
@@ -125,10 +122,10 @@ class DataManager:
     def get_and_clear_pending_notifications(self, user_id: str) -> list[str]:
         """获取并清空一个用户的所有待推送通知"""
         pending_list = self.pending_data.pop(user_id, [])
-        if pending_list: # 如果确实有数据被移除，才保存文件
+        if pending_list:  # 如果确实有数据被移除，才保存文件
             self.save_pending()
         return pending_list
 
     def has_achievement(self, user_id: str, achievement_id: str) -> bool:
-            """检查用户是否已经拥有特定成就"""
-            return user_id in self.data and achievement_id in self.data[user_id]
+        """检查用户是否已经拥有特定成就"""
+        return user_id in self.data and achievement_id in self.data[user_id]

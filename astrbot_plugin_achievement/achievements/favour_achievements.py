@@ -3,6 +3,7 @@
 
 # --- 检查函数定义 ---
 
+
 async def check_favour_520(apis: dict, user_id: str) -> bool:
     """检查好感度是否达到520"""
     favour_api = apis.get("favour_pro_api")
@@ -10,6 +11,7 @@ async def check_favour_520(apis: dict, user_id: str) -> bool:
         return False
     state = await favour_api.get_user_state(user_id)
     return state and state.get("favour", 0) >= 520
+
 
 async def check_favour_1314(apis: dict, user_id: str) -> bool:
     """检查好感度是否达到1314"""
@@ -19,6 +21,7 @@ async def check_favour_1314(apis: dict, user_id: str) -> bool:
     state = await favour_api.get_user_state(user_id)
     return state and state.get("favour", 0) >= 1314
 
+
 async def check_favour_9999(apis: dict, user_id: str) -> bool:
     """检查好感度是否达到9999"""
     favour_api = apis.get("favour_pro_api")
@@ -26,6 +29,7 @@ async def check_favour_9999(apis: dict, user_id: str) -> bool:
         return False
     state = await favour_api.get_user_state(user_id)
     return state and state.get("favour", 0) >= 9999
+
 
 async def check_favour_negative(apis: dict, user_id: str) -> bool:
     """检查好感度是否为负数"""
@@ -35,6 +39,7 @@ async def check_favour_negative(apis: dict, user_id: str) -> bool:
     state = await favour_api.get_user_state(user_id)
     return state and state.get("favour", 0) < 0
 
+
 async def check_favour_hated(apis: dict, user_id: str) -> bool:
     """检查好感度是否低于-200"""
     favour_api = apis.get("favour_pro_api")
@@ -42,6 +47,7 @@ async def check_favour_hated(apis: dict, user_id: str) -> bool:
         return False
     state = await favour_api.get_user_state(user_id)
     return state and state.get("favour", 0) <= -200
+
 
 async def check_favour_rank_first(apis: dict, user_id: str) -> bool:
     """检查是否为好感度排行榜第一名"""
@@ -52,6 +58,7 @@ async def check_favour_rank_first(apis: dict, user_id: str) -> bool:
     # 确保排行榜不为空，且榜首是当前用户
     return ranking and ranking[0].get("user_id") == user_id
 
+
 async def check_relationship_beloved(apis: dict, user_id: str) -> bool:
     """检查与用户的关系是否为「挚爱」"""
     favour_api = apis.get("favour_pro_api")
@@ -60,6 +67,8 @@ async def check_relationship_beloved(apis: dict, user_id: str) -> bool:
     state = await favour_api.get_user_state(user_id)
     # 确保状态存在，并且关系字段的值是 "挚爱"
     return state and state.get("relationship") == "挚爱之人"
+
+
 # --- 成就列表定义 ---
 
 ACHIEVEMENTS = [
@@ -92,15 +101,15 @@ ACHIEVEMENTS = [
         "check_func": check_favour_1314,
     },
     {
-    "id": "favour_9999",
-    "title": "天长地久",  # 或"永恒誓约"
-    "description": "好感度达到了9999，这份情谊将永恒长存",
-    "icon_path": "data/plugins/astrbot_plugin_achievement/assets/icons/infity.png",  # 可用无限符号图标
-    "rarity": "flawless",  # 使用最高稀有度
-    "reward_coins": 9999,
-    "check_func": check_favour_9999,
-    "hidden": True,
-},
+        "id": "favour_9999",
+        "title": "天长地久",  # 或"永恒誓约"
+        "description": "好感度达到了9999，这份情谊将永恒长存",
+        "icon_path": "data/plugins/astrbot_plugin_achievement/assets/icons/infity.png",  # 可用无限符号图标
+        "rarity": "flawless",  # 使用最高稀有度
+        "reward_coins": 9999,
+        "check_func": check_favour_9999,
+        "hidden": True,
+    },
     {
         "id": "favour_negative",
         "title": "希望只是误会",

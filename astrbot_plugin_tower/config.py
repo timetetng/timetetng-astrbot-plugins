@@ -10,18 +10,46 @@ INDEX_FILE = os.path.join(PLUGIN_DATA_DIR, "index.json")
 
 # --- 深塔数据探测配置 ---
 MIN_TOWER_ID_PROBE = 26  # 从第几期开始请求
-MAX_TOWER_ID_PROBE = 200 # 够你玩到官服了
+MAX_TOWER_ID_PROBE = 200  # 够你玩到官服了
 
 
 # --- 游戏元素与样式配置 ---
 ELEMENT_MAP = {
-    1: {"name": "冷凝", "icon": "https://api.hakush.in/ww/UI/UIResources/Common/Image/IconElementAttri/T_IconElementAttriIce.webp", "color": "#41aefb"},
-    2: {"name": "热熔", "icon": "https://api.hakush.in/ww/UI/UIResources/Common/Image/IconElementAttri/T_IconElementAttriFire.webp", "color": "#f0744e"},
-    3: {"name": "导电", "icon": "https://api.hakush.in/ww/UI/UIResources/Common/Image/IconElementAttri/T_IconElementAttriThunder.webp", "color": "#b45bff"},
-    4: {"name": "气动", "icon": "https://api.hakush.in/ww/UI/UIResources/Common/Image/IconElementAttri/T_IconElementAttriWind.webp", "color": "#53f9b1"},
-    5: {"name": "衍射", "icon": "https://api.hakush.in/ww/UI/UIResources/Common/Image/IconElementAttri/T_IconElementAttriLight.webp", "color": "#f7ca2f"},
-    6: {"name": "湮灭", "icon": "https://api.hakush.in/ww/UI/UIResources/Common/Image/IconElementAttri/T_IconElementAttriDark.webp", "color": "#e649a6"},
-    7: {"name": "物理", "icon": "https://api.hakush.in/ww/UI/UIResources/Common/Image/IconElement/T_IconElementZero1.webp", "color": "#ffffff"},
+    1: {
+        "name": "冷凝",
+        "icon": "https://api.hakush.in/ww/UI/UIResources/Common/Image/IconElementAttri/T_IconElementAttriIce.webp",
+        "color": "#41aefb",
+    },
+    2: {
+        "name": "热熔",
+        "icon": "https://api.hakush.in/ww/UI/UIResources/Common/Image/IconElementAttri/T_IconElementAttriFire.webp",
+        "color": "#f0744e",
+    },
+    3: {
+        "name": "导电",
+        "icon": "https://api.hakush.in/ww/UI/UIResources/Common/Image/IconElementAttri/T_IconElementAttriThunder.webp",
+        "color": "#b45bff",
+    },
+    4: {
+        "name": "气动",
+        "icon": "https://api.hakush.in/ww/UI/UIResources/Common/Image/IconElementAttri/T_IconElementAttriWind.webp",
+        "color": "#53f9b1",
+    },
+    5: {
+        "name": "衍射",
+        "icon": "https://api.hakush.in/ww/UI/UIResources/Common/Image/IconElementAttri/T_IconElementAttriLight.webp",
+        "color": "#f7ca2f",
+    },
+    6: {
+        "name": "湮灭",
+        "icon": "https://api.hakush.in/ww/UI/UIResources/Common/Image/IconElementAttri/T_IconElementAttriDark.webp",
+        "color": "#e649a6",
+    },
+    7: {
+        "name": "物理",
+        "icon": "https://api.hakush.in/ww/UI/UIResources/Common/Image/IconElement/T_IconElementZero1.webp",
+        "color": "#ffffff",
+    },
 }
 
 KEYWORD_STYLES = {
@@ -37,4 +65,6 @@ KEYWORD_STYLES = {
 BUFF_ICON_URL = "https://api.hakush.in/ww/UI/UIResources/Common/Image/IconAttribute/T_Iconpropertyredattack_UI.webp"
 
 # 透明背景占位符
-TRANSPARENT_PIXEL_BASE64 = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+TRANSPARENT_PIXEL_BASE64 = (
+    "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+)

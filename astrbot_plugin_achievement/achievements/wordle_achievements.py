@@ -3,6 +3,7 @@
 
 # --- 检查函数定义 ---
 
+
 async def check_wordle_wins_20(apis: dict, user_id: str) -> bool:
     """检查用户猜单词胜利次数是否超过20次"""
     wordle_api = apis.get("wordle_api")
@@ -10,6 +11,7 @@ async def check_wordle_wins_20(apis: dict, user_id: str) -> bool:
         return False
     stats = await wordle_api.get_user_stats(user_id)
     return stats and stats.get("win_count", 0) > 20
+
 
 async def check_wordle_wins_100(apis: dict, user_id: str) -> bool:
     """检查用户猜单词胜利次数是否超过100次"""
@@ -19,6 +21,7 @@ async def check_wordle_wins_100(apis: dict, user_id: str) -> bool:
     stats = await wordle_api.get_user_stats(user_id)
     return stats and stats.get("win_count", 0) > 100
 
+
 async def check_wordle_dividend_5(apis: dict, user_id: str) -> bool:
     """检查用户猜单词获得分红次数是否超过5次"""
     wordle_api = apis.get("wordle_api")
@@ -26,6 +29,7 @@ async def check_wordle_dividend_5(apis: dict, user_id: str) -> bool:
         return False
     stats = await wordle_api.get_user_stats(user_id)
     return stats and stats.get("dividend_count", 0) > 5
+
 
 # --- 成就列表定义 ---
 

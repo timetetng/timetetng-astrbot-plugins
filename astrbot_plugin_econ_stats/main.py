@@ -7,12 +7,10 @@ import aiosqlite
 import jinja2
 import json
 from playwright.async_api import async_playwright
-import re
 from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger, AstrBotConfig
 from ..common.services import shared_services
-import astrbot.api.message_components as Comp
 
 
 PERSONAL_STATS_HTML_TEMPLATE = """
@@ -228,9 +226,12 @@ CHART_HTML_TEMPLATE = """
 </html>
 """
 
+
 class StatsDatabase:
     def __init__(self, plugin_dir: str):
-        db_dir = os.path.join(os.path.dirname(os.path.dirname(plugin_dir)), "plugins_db")
+        db_dir = os.path.join(
+            os.path.dirname(os.path.dirname(plugin_dir)), "plugins_db"
+        )
         if not os.path.exists(db_dir):
             os.makedirs(db_dir)
         self.db_path = os.path.join(db_dir, "astrbot_plugin_econ_stats.db")
@@ -239,9 +240,9 @@ class StatsDatabase:
     async def connect(self):
         self.conn = await aiosqlite.connect(self.db_path)
         self.conn.row_factory = aiosqlite.Row
-        
+
         # 1. 每日快照 (用于每日看板)
-        await self.conn.execute('''CREATE TABLE IF NOT EXISTS daily_snapshots (
+        await self.conn.execute("""CREATE TABLE IF NOT EXISTS daily_snapshots (
             date TEXT PRIMARY KEY,
             total_supply INTEGER,
             net_change REAL,
@@ -249,26 +250,26 @@ class StatsDatabase:
             sink REAL,
             active_users INTEGER,
             total_activity_rewards INTEGER 
-        )''')
-        
+        )""")
+
         # 2. 全局资产快照 (每15分钟)
-        await self.conn.execute('''CREATE TABLE IF NOT EXISTS global_wealth_snapshots (
+        await self.conn.execute("""CREATE TABLE IF NOT EXISTS global_wealth_snapshots (
             timestamp INTEGER PRIMARY KEY,
             date_str TEXT,
             total_wealth REAL,
             cash_supply REAL,
             stock_value REAL
-        )''')
+        )""")
 
         # 3. 用户资产快照 (每2小时, 用于视频)
-        await self.conn.execute('''CREATE TABLE IF NOT EXISTS user_asset_snapshots (
+        await self.conn.execute("""CREATE TABLE IF NOT EXISTS user_asset_snapshots (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp INTEGER,
             user_id TEXT,
             total_assets REAL,
             cash REAL,
             stock REAL
-        )''')
+        )""")
 
         await self.conn.commit()
 
@@ -278,10 +279,18 @@ class StatsDatabase:
             (date, total_supply, net_change, source, sink, active_users, total_activity_rewards) 
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """
-        await self.conn.execute(query, (
-            data['date'], data['total_supply'], data['net_change'],
-            data['source'], data['sink'], data['active_users'], data['total_activity_rewards']
-        ))
+        await self.conn.execute(
+            query,
+            (
+                data["date"],
+                data["total_supply"],
+                data["net_change"],
+                data["source"],
+                data["sink"],
+                data["active_users"],
+                data["total_activity_rewards"],
+            ),
+        )
         await self.conn.commit()
 
     async def save_global_wealth_15m(self, data: dict):
@@ -291,10 +300,16 @@ class StatsDatabase:
             (timestamp, date_str, total_wealth, cash_supply, stock_value) 
             VALUES (?, ?, ?, ?, ?)
         """
-        await self.conn.execute(query, (
-            data['timestamp'], data['date_str'], data['total_wealth'],
-            data['cash_supply'], data['stock_value']
-        ))
+        await self.conn.execute(
+            query,
+            (
+                data["timestamp"],
+                data["date_str"],
+                data["total_wealth"],
+                data["cash_supply"],
+                data["stock_value"],
+            ),
+        )
         await self.conn.commit()
 
     async def save_user_stats_batch(self, records: list):
@@ -310,7 +325,9 @@ class StatsDatabase:
 
     async def get_recent_global_wealth(self, days: int = 7):
         """获取最近 N 天的 15 分钟粒度数据"""
-        cutoff = int((datetime.datetime.now() - datetime.timedelta(days=days)).timestamp())
+        cutoff = int(
+            (datetime.datetime.now() - datetime.timedelta(days=days)).timestamp()
+        )
         query = "SELECT * FROM global_wealth_snapshots WHERE timestamp > ? ORDER BY timestamp ASC"
         async with self.conn.execute(query, (cutoff,)) as cursor:
             rows = await cursor.fetchall()
@@ -321,12 +338,13 @@ class StatsDatabase:
         async with self.conn.execute(query, (date_str,)) as cursor:
             row = await cursor.fetchone()
             return dict(row) if row else None
-            
+
     async def get_recent_snapshots(self, limit: int = 7):
         query = "SELECT * FROM daily_snapshots ORDER BY date DESC LIMIT ?"
         async with self.conn.execute(query, (limit,)) as cursor:
             rows = await cursor.fetchall()
             return [dict(row) for row in reversed(rows)] if rows else []
+
 
 @register("econ_stats", "timetetng", "经济系统数据统计与看板", "1.0.0")
 class EconStatsPlugin(Star):
@@ -342,24 +360,26 @@ class EconStatsPlugin(Star):
 
     async def initialize_and_run_task(self):
         logger.info("正在等待经济系统API加载...")
-        timeout_seconds = 30 
+        timeout_seconds = 30
         start_time = asyncio.get_event_loop().time()
-        
+
         while self.economy_api is None:
             self.economy_api = shared_services.get("economy_api")
             if self.economy_api is None:
                 if asyncio.get_event_loop().time() - start_time > timeout_seconds:
                     logger.warning("等待经济系统API超时，插件功能将受限！")
                     break
-                await asyncio.sleep(1) 
-        
+                await asyncio.sleep(1)
+
         if self.economy_api:
             logger.info("经济系统API已成功加载。")
-            await self._clear_cache_on_startup() 
+            await self._clear_cache_on_startup()
             await self.db.connect()
             # 立即运行一次15分钟记录，保证启动即有数据
             await self._record_15m_stats()
-            self.background_task = asyncio.create_task(self.run_statistics_periodically())
+            self.background_task = asyncio.create_task(
+                self.run_statistics_periodically()
+            )
         else:
             logger.warning("经济系统API未找到，插件功能将受限！")
 
@@ -373,13 +393,14 @@ class EconStatsPlugin(Star):
 
     async def _clear_cache_on_startup(self, retention_days: int = 1):
         cache_dir = os.path.join(os.path.dirname(__file__), "cache")
-        if not os.path.isdir(cache_dir): return
+        if not os.path.isdir(cache_dir):
+            return
         now = datetime.datetime.now().timestamp()
-        retention_period = retention_days * 24 * 60 * 60 
+        retention_period = retention_days * 24 * 60 * 60
         try:
             for filename in os.listdir(cache_dir):
                 file_path = os.path.join(cache_dir, filename)
-                if os.path.isfile(file_path) and filename.endswith('.png'):
+                if os.path.isfile(file_path) and filename.endswith(".png"):
                     if (now - os.path.getmtime(file_path)) > retention_period:
                         os.remove(file_path)
         except Exception as e:
@@ -393,15 +414,17 @@ class EconStatsPlugin(Star):
         """
         economy_api = shared_services.get("economy_api")
         stock_api = shared_services.get("stock_market_api")
-        
+
         cash_supply = 0
         total_wealth = 0
-        
+
         # 1. 获取现金总量 (EconomyAPI)
         if economy_api:
             # 尝试调用底层 DB 获取现金总量
             try:
-                if hasattr(economy_api, '_db') and hasattr(economy_api._db, 'get_total_coin_supply'):
+                if hasattr(economy_api, "_db") and hasattr(
+                    economy_api._db, "get_total_coin_supply"
+                ):
                     cash_supply = await economy_api._db.get_total_coin_supply()
                 else:
                     # Fallback: 如果没有底层方法，暂时设为0或通过排行估算
@@ -415,16 +438,18 @@ class EconStatsPlugin(Star):
                 # 利用 get_total_asset_ranking 获取全服（限制较大数量）的总资产之和
                 # 假设前 2000 名用户占据了绝大部分财富
                 ranking = await stock_api.get_total_asset_ranking(limit=2000)
-                total_wealth = sum(user_data.get('total_assets', 0) for user_data in ranking)
+                total_wealth = sum(
+                    user_data.get("total_assets", 0) for user_data in ranking
+                )
             except Exception as e:
                 logger.warning(f"无法从 Stock API 计算总市值: {e}")
-                total_wealth = cash_supply # 降级为仅现金
+                total_wealth = cash_supply  # 降级为仅现金
         else:
             total_wealth = cash_supply
 
         # 3. 倒推股票/其他资产价值
         stock_value = total_wealth - cash_supply
-        
+
         return cash_supply, stock_value, total_wealth
 
     async def _record_15m_stats(self):
@@ -432,13 +457,13 @@ class EconStatsPlugin(Star):
         try:
             now = datetime.datetime.now()
             cash, stock, total = await self._get_system_total_wealth()
-            
+
             data = {
                 "timestamp": int(now.timestamp()),
-                "date_str": now.strftime('%Y-%m-%d %H:%M:%S'),
+                "date_str": now.strftime("%Y-%m-%d %H:%M:%S"),
                 "total_wealth": total,
                 "cash_supply": cash,
-                "stock_value": stock
+                "stock_value": stock,
             }
             await self.db.save_global_wealth_15m(data)
             logger.debug(f"已记录15分钟经济数据: Total={total}")
@@ -451,89 +476,99 @@ class EconStatsPlugin(Star):
             logger.info("开始执行每2小时用户资产快照记录...")
             economy_api = shared_services.get("economy_api")
             stock_api = shared_services.get("stock_market_api")
-            
+
             # 使用总资产排行获取活跃用户，这通常比 Economy 的金币排行更准确反映财富
             target_users = []
             if stock_api:
                 ranking = await stock_api.get_total_asset_ranking(limit=1000)
-                target_users = ranking # [{'user_id':..., 'total_assets':...}, ...]
+                target_users = ranking  # [{'user_id':..., 'total_assets':...}, ...]
             elif economy_api:
                 ranking = await economy_api.get_ranking(limit=1000)
-                target_users = ranking # [{'user_id':..., 'coins':...}, ...]
-            
+                target_users = ranking  # [{'user_id':..., 'coins':...}, ...]
+
             now_ts = int(datetime.datetime.now().timestamp())
             records = []
-            
+
             for u in target_users:
-                uid = u.get('user_id')
-                if not uid: continue
-                
+                uid = u.get("user_id")
+                if not uid:
+                    continue
+
                 # 获取各项资产
                 u_cash = 0
                 u_total = 0
-                
+
                 # 1. 获取现金
                 if economy_api:
                     u_cash = await economy_api.get_coins(uid)
-                
+
                 # 2. 获取总资产 (优先信赖 StockAPI 的 total_assets)
                 if stock_api:
                     # 如果 target_users 来源于 StockAPI，直接取值
-                    if 'total_assets' in u:
-                        u_total = u['total_assets']
+                    if "total_assets" in u:
+                        u_total = u["total_assets"]
                     else:
                         # 否则单独查询
                         asset_info = await stock_api.get_user_total_asset(uid)
-                        u_total = asset_info.get('total_assets', u_cash)
+                        u_total = asset_info.get("total_assets", u_cash)
                 else:
                     u_total = u_cash
 
                 u_stock = u_total - u_cash
                 records.append((now_ts, uid, u_total, u_cash, u_stock))
-            
+
             await self.db.save_user_stats_batch(records)
             logger.info(f"已保存 {len(records)} 名用户的资产快照")
 
         except Exception as e:
             logger.error(f"用户资产快照记录失败: {e}", exc_info=True)
 
-    async def _generate_snapshot_for_date(self, target_date: datetime.date, current_total_wealth: int) -> dict:
+    async def _generate_snapshot_for_date(
+        self, target_date: datetime.date, current_total_wealth: int
+    ) -> dict:
         """为每日看板生成数据"""
-        date_str = target_date.strftime('%Y-%m-%d')
+        date_str = target_date.strftime("%Y-%m-%d")
         now = datetime.datetime.now()
-        economy_api = shared_services.get("economy_api") # 主要用于流向统计
-        
+        economy_api = shared_services.get("economy_api")  # 主要用于流向统计
+
         # 注意：每日看板的 "Net Change" 和 "Flow" 依然基于 EconomyAPI 的金币流水
         # 因为 StockAPI 通常不记录详细的流水日志
-        
+
         # 1. 计算历史总量 (简化：仅记录当天的最终 Total Wealth，不反推历史)
         # 如果是生成当天数据，直接使用传入的 current_total_wealth
         historical_supply = current_total_wealth
 
         start_of_day = datetime.datetime.combine(target_date, datetime.time.min)
-        end_of_day = now if target_date == now.date() else datetime.datetime.combine(target_date, datetime.time.max)
-        
-        flow_summary = {'source': 0, 'sink': 0}
+        end_of_day = (
+            now
+            if target_date == now.date()
+            else datetime.datetime.combine(target_date, datetime.time.max)
+        )
+
+        flow_summary = {"source": 0, "sink": 0}
         active_users = 0
         total_activity_rewards = 0
 
         if economy_api:
-             # 使用统一的时间格式
+            # 使用统一的时间格式
             flow_summary = await economy_api._db.get_coin_flow_summary(
-                start_of_day.strftime('%Y-%m-%d %H:%M:%S'), 
-                end_of_day.strftime('%Y-%m-%d %H:%M:%S')
+                start_of_day.strftime("%Y-%m-%d %H:%M:%S"),
+                end_of_day.strftime("%Y-%m-%d %H:%M:%S"),
             )
             active_users = await economy_api._db.get_active_user_count_on_date(date_str)
-            total_activity_rewards = await economy_api._db.get_total_activity_rewards_on_date(date_str)
+            total_activity_rewards = (
+                await economy_api._db.get_total_activity_rewards_on_date(date_str)
+            )
 
         snapshot_data = {
             "date": date_str,
-            "total_supply": historical_supply, # 这里的 Total Supply 变成了总资产
-            "net_change": flow_summary['source'] - flow_summary['sink'], # 净增长依然是金币维度的
-            "source": flow_summary['source'],
-            "sink": flow_summary['sink'],
+            "total_supply": historical_supply,  # 这里的 Total Supply 变成了总资产
+            "net_change": flow_summary["source"]
+            - flow_summary["sink"],  # 净增长依然是金币维度的
+            "source": flow_summary["source"],
+            "sink": flow_summary["sink"],
             "active_users": active_users,
-            "total_activity_rewards": total_activity_rewards
+            "total_activity_rewards": total_activity_rewards,
         }
         await self.db.save_snapshot(snapshot_data)
         return snapshot_data
@@ -543,8 +578,9 @@ class EconStatsPlugin(Star):
         async with self.update_lock:
             today = datetime.date.today()
             economy_api = shared_services.get("economy_api")
-            if not economy_api: return {}
-            
+            if not economy_api:
+                return {}
+
             logger.info("正在执行每日数据快照更新...")
             # 获取当前系统总资产
             _, _, total_wealth = await self._get_system_total_wealth()
@@ -552,19 +588,19 @@ class EconStatsPlugin(Star):
 
     async def run_statistics_periodically(self):
         """后台定时任务：每15分钟唤醒一次"""
-        logger.info(f"经济统计后台任务已启动 (Interval: 15m)")
+        logger.info("经济统计后台任务已启动 (Interval: 15m)")
         while self.is_running:
             try:
                 now = datetime.datetime.now()
-                
+
                 # 1. 总是执行：15分钟粒度的全局记录
                 await self._record_15m_stats()
-                
+
                 # 2. 条件执行：每2小时执行一次用户快照 (整点偶数小时，且在开头15分钟内)
                 # 例如 00:00-00:15, 02:00-02:15 ...
                 if now.hour % 2 == 0 and now.minute < 15:
                     await self._record_2h_user_stats()
-                
+
                 # 3. 每日更新 daily_snapshots (用于每日看板)
                 if now.hour == 0 and now.minute < 15:
                     await self._update_snapshot_data()
@@ -590,10 +626,12 @@ class EconStatsPlugin(Star):
             browser = await p.chromium.launch()
             page = await browser.new_page()
             await page.set_content(html_content, wait_until="domcontentloaded")
-            bounding_box = await page.locator('body > div').bounding_box()
+            bounding_box = await page.locator("body > div").bounding_box()
             if bounding_box:
-                await page.set_viewport_size({"width": 820, "height": int(bounding_box['height']) + 20})
-            await page.locator('body > div').screenshot(path=image_path)
+                await page.set_viewport_size(
+                    {"width": 820, "height": int(bounding_box["height"]) + 20}
+                )
+            await page.locator("body > div").screenshot(path=image_path)
             await browser.close()
         return image_path
 
@@ -604,60 +642,73 @@ class EconStatsPlugin(Star):
                 return
 
             now = datetime.datetime.now()
-            avg_activity_reward = (data['total_activity_rewards'] / data['active_users']) if data['active_users'] > 0 else 0
-            
+            avg_activity_reward = (
+                (data["total_activity_rewards"] / data["active_users"])
+                if data["active_users"] > 0
+                else 0
+            )
+
             render_data = {
-                "total_supply": f"{data['total_supply']:,}", # 全服总资产
+                "total_supply": f"{data['total_supply']:,}",  # 全服总资产
                 "net_change": f"{data['net_change']:+.0f}",
-                "net_change_class": "net-positive" if data['net_change'] >= 0 else "net-negative",
-                "source": f"{data['source']:.0f}", "sink": f"{data['sink']:.0f}",
+                "net_change_class": "net-positive"
+                if data["net_change"] >= 0
+                else "net-negative",
+                "source": f"{data['source']:.0f}",
+                "sink": f"{data['sink']:.0f}",
                 "recycling_rate": f"{(data['sink'] / data['source'] * 100) if data['source'] > 0 else 0:.2f}",
-                "active_users": data['active_users'],
+                "active_users": data["active_users"],
                 "total_activity_rewards": f"{data['total_activity_rewards']:,}",
                 "avg_activity_reward": f"{avg_activity_reward:.1f}",
-                "update_time": now.strftime('%Y-%m-%d %H:%M:%S')
+                "update_time": now.strftime("%Y-%m-%d %H:%M:%S"),
             }
-            
+
             template = jinja2.Template(STATS_HTML_TEMPLATE)
             final_html = template.render(render_data)
             image_path = await self.render_html_locally(final_html)
             yield event.image_result(image_path)
-            
+
         except Exception as e:
             logger.error(f"生成经济看板图片时失败: {e}", exc_info=True)
-            yield event.plain_result(f"生成看板图片时发生错误，请查看后台日志。")
+            yield event.plain_result("生成看板图片时发生错误，请查看后台日志。")
 
-    @filter.command("经济看板", alias={'数据看板', 'stats'})
+    @filter.command("经济看板", alias={"数据看板", "stats"})
     async def show_stats_dashboard(self, event: AstrMessageEvent):
         try:
             now = datetime.datetime.now()
-            today_str = now.strftime('%Y-%m-%d')
+            today_str = now.strftime("%Y-%m-%d")
             data = await self.db.get_snapshot_by_date(today_str)
             if not data:
-                yield event.plain_result("暂无今日数据。请等待定时任务更新，或联系管理员使用 /刷新数据 命令立即生成。")
+                yield event.plain_result(
+                    "暂无今日数据。请等待定时任务更新，或联系管理员使用 /刷新数据 命令立即生成。"
+                )
                 return
             async for result in self._generate_and_send_dashboard(event, data):
                 yield result
         except Exception as e:
             logger.error(f"生成经济看板失败: {e}", exc_info=True)
-            yield event.plain_result(f"生成经济看板时发生错误，请查看后台日志。")
+            yield event.plain_result("生成经济看板时发生错误，请查看后台日志。")
 
     @filter.permission_type(filter.PermissionType.ADMIN)
-    @filter.command("刷新数据", alias={'refresh_stats'})
+    @filter.command("刷新数据", alias={"refresh_stats"})
     async def refresh_data(self, event: AstrMessageEvent):
         try:
             yield event.plain_result("正在刷新经济数据并生成看板，请稍候...")
             updated_data = await self._update_snapshot_data()
             if not updated_data:
-                yield event.plain_result("❌ 数据刷新失败，未能获取到有效数据。请检查后台日志。")
+                yield event.plain_result(
+                    "❌ 数据刷新失败，未能获取到有效数据。请检查后台日志。"
+                )
                 return
             async for result in self._generate_and_send_dashboard(event, updated_data):
                 yield result
         except Exception as e:
             logger.error(f"手动刷新数据失败: {e}", exc_info=True)
-            yield event.plain_result(f"❌ 刷新数据时发生错误，请检查后台日志。")
+            yield event.plain_result("❌ 刷新数据时发生错误，请检查后台日志。")
 
-    @filter.command("金币增长图", alias={'金币统计', '金币曲线',"金币变化图", "资产变化图"})
+    @filter.command(
+        "金币增长图", alias={"金币统计", "金币曲线", "金币变化图", "资产变化图"}
+    )
     async def show_growth_chart(self, event: AstrMessageEvent):
         """显示全服总资产变化曲线 (15分钟粒度)"""
         try:
@@ -666,13 +717,20 @@ class EconStatsPlugin(Star):
             snapshots = await self.db.get_recent_global_wealth(days=days)
 
             if len(snapshots) < 2:
-                yield event.plain_result(f"历史数据不足（需要至少2个记录点）。\n数据正在每15分钟收集中，请稍后再试。")
+                yield event.plain_result(
+                    "历史数据不足（需要至少2个记录点）。\n数据正在每15分钟收集中，请稍后再试。"
+                )
                 return
-            
+
             # 准备数据：格式化时间戳
-            labels = [datetime.datetime.fromtimestamp(item['timestamp']).strftime('%m-%d %H:%M') for item in snapshots]
+            labels = [
+                datetime.datetime.fromtimestamp(item["timestamp"]).strftime(
+                    "%m-%d %H:%M"
+                )
+                for item in snapshots
+            ]
             # 数据使用 Total Wealth (Total Assets)
-            total_supply_data = [item['total_wealth'] for item in snapshots]
+            total_supply_data = [item["total_wealth"] for item in snapshots]
 
             # 简单的降采样，防止点太多
             if len(labels) > 200:
@@ -683,7 +741,7 @@ class EconStatsPlugin(Star):
             render_data = {
                 "labels": json.dumps(labels),
                 "data": json.dumps(total_supply_data),
-                "days_count": f"{days}天 (15min粒度)"
+                "days_count": f"{days}天 (15min粒度)",
             }
 
             template = jinja2.Template(CHART_HTML_TEMPLATE)
@@ -693,54 +751,64 @@ class EconStatsPlugin(Star):
 
         except Exception as e:
             logger.error(f"生成增长图失败: {e}", exc_info=True)
-            yield event.plain_result(f"生成增长图时发生错误，请查看后台日志。")
+            yield event.plain_result("生成增长图时发生错误，请查看后台日志。")
 
     @filter.permission_type(filter.PermissionType.ADMIN)
-    @filter.command("回填数据", alias={'backfill_stats'})
+    @filter.command("回填数据", alias={"backfill_stats"})
     async def backfill_stats(self, event: AstrMessageEvent):
         """[注意] 回填功能仅支持每日看板数据，不支持15分钟粒度的曲线图回填"""
         try:
             days_to_backfill = self.config.get("chart_days", 7)
-            yield event.plain_result(f"开始回填过去 {days_to_backfill} 天的【每日看板】数据...")
-            
+            yield event.plain_result(
+                f"开始回填过去 {days_to_backfill} 天的【每日看板】数据..."
+            )
+
             # 使用当前的总资产近似
             _, _, current_total = await self._get_system_total_wealth()
-            
+
             today = datetime.date.today()
             for i in range(days_to_backfill):
                 target_day = today - datetime.timedelta(days=i)
-                date_str = target_day.strftime('%Y-%m-%d')
+                date_str = target_day.strftime("%Y-%m-%d")
                 if await self.db.get_snapshot_by_date(date_str) is None:
                     await self._generate_snapshot_for_date(target_day, current_total)
                     await asyncio.sleep(0.5)
-            
-            yield event.plain_result(f"✅ 数据回填成功！")
+
+            yield event.plain_result("✅ 数据回填成功！")
 
         except Exception as e:
             logger.error(f"数据回填失败: {e}", exc_info=True)
-            yield event.plain_result(f"❌ 数据回填时发生错误，请检查后台日志。")
+            yield event.plain_result("❌ 数据回填时发生错误，请检查后台日志。")
 
-    @filter.command("个人数据", alias={'数据统计', 'personal_stats'})
+    @filter.command("个人数据", alias={"数据统计", "personal_stats"})
     async def show_personal_stats(self, event: AstrMessageEvent):
         try:
             user_id = event.get_sender_id()
             default_user_name = event.get_sender_name()
             now = datetime.datetime.now()
-            yield event.plain_result(f"正在为 {default_user_name} 生成个人数据报告，请稍候...")
+            yield event.plain_result(
+                f"正在为 {default_user_name} 生成个人数据报告，请稍候..."
+            )
 
             economy_api = shared_services.get("economy_api")
             nickname_api = shared_services.get("nickname_api")
             stock_market_api = shared_services.get("stock_market_api")
-            
+
             if not economy_api:
                 yield event.plain_result("❌ 错误：经济系统 (EconomyAPI) 未加载。")
                 return
-            
+
             tasks = {
                 "week_flow": economy_api._db.get_personal_flow_summary(user_id, days=7),
-                "today_flow": economy_api._db.get_personal_flow_summary(user_id, days=1),
-                "lottery_stats": economy_api._db.get_personal_lottery_stats(user_id, days=7),
-                "nickname": nickname_api.get_nickname(user_id) if nickname_api else asyncio.sleep(0, result=None),
+                "today_flow": economy_api._db.get_personal_flow_summary(
+                    user_id, days=1
+                ),
+                "lottery_stats": economy_api._db.get_personal_lottery_stats(
+                    user_id, days=7
+                ),
+                "nickname": nickname_api.get_nickname(user_id)
+                if nickname_api
+                else asyncio.sleep(0, result=None),
             }
 
             if stock_market_api:
@@ -754,37 +822,49 @@ class EconStatsPlugin(Star):
 
             results = await asyncio.gather(*tasks.values())
             res_dict = dict(zip(tasks.keys(), results))
-            
-            display_name = res_dict['nickname'] or default_user_name
-            
+
+            display_name = res_dict["nickname"] or default_user_name
+
             user_rank = "未上榜"
-            ranking_list = res_dict.get('ranking', [])
+            ranking_list = res_dict.get("ranking", [])
             for i, user_data in enumerate(ranking_list):
-                if user_data.get('user_id') == user_id:
+                if user_data.get("user_id") == user_id:
                     user_rank = f"第 {i + 1} 名"
                     break
-            
+
             if stock_market_api:
-                asset_info = res_dict['assets']
+                asset_info = res_dict["assets"]
                 display_balance = f"{asset_info.get('total_assets', 0):,.2f}"
-            else: 
+            else:
                 display_balance = f"{res_dict['assets']:,}"
 
-            l_stats = res_dict['lottery_stats']
-            total_plays = l_stats['total_plays']
-            lottery_win_rate = (l_stats['profitable_wins'] / total_plays * 100) if total_plays > 0 else 0
+            l_stats = res_dict["lottery_stats"]
+            total_plays = l_stats["total_plays"]
+            lottery_win_rate = (
+                (l_stats["profitable_wins"] / total_plays * 100)
+                if total_plays > 0
+                else 0
+            )
             best_fortune = "未知"
             if total_plays >= 3:
-                if lottery_win_rate > 80: best_fortune = "大吉"
-                elif lottery_win_rate > 65: best_fortune = "吉"
-                elif lottery_win_rate > 50: best_fortune = "小吉"
-                elif lottery_win_rate > 35: best_fortune = "末小吉"
-                elif lottery_win_rate > 20: best_fortune = "凶"
-                else: best_fortune = "大凶" if lottery_win_rate > 0 else "非酋"
-            lottery_net_profit = l_stats['total_won'] - l_stats['total_spent']
-            avg_lottery_multiplier = l_stats['avg_multiplier'] if l_stats['avg_multiplier'] else 0
-            week_flow = res_dict['week_flow']
-            today_flow = res_dict['today_flow']
+                if lottery_win_rate > 80:
+                    best_fortune = "大吉"
+                elif lottery_win_rate > 65:
+                    best_fortune = "吉"
+                elif lottery_win_rate > 50:
+                    best_fortune = "小吉"
+                elif lottery_win_rate > 35:
+                    best_fortune = "末小吉"
+                elif lottery_win_rate > 20:
+                    best_fortune = "凶"
+                else:
+                    best_fortune = "大凶" if lottery_win_rate > 0 else "非酋"
+            lottery_net_profit = l_stats["total_won"] - l_stats["total_spent"]
+            avg_lottery_multiplier = (
+                l_stats["avg_multiplier"] if l_stats["avg_multiplier"] else 0
+            )
+            week_flow = res_dict["week_flow"]
+            today_flow = res_dict["today_flow"]
 
             render_data = {
                 "nickname": display_name,
@@ -794,13 +874,13 @@ class EconStatsPlugin(Star):
                 "ranking_type": ranking_type,
                 "week_income": f"{week_flow['income']:,}",
                 "week_expenditure": f"{week_flow['expenditure']:,}",
-                "week_net_income": week_flow['income'] - week_flow['expenditure'],
-                "today_net_income": today_flow['income'] - today_flow['expenditure'],
+                "week_net_income": week_flow["income"] - week_flow["expenditure"],
+                "today_net_income": today_flow["income"] - today_flow["expenditure"],
                 "lottery_net_profit": lottery_net_profit,
                 "lottery_win_rate": f"{lottery_win_rate:.1f}",
                 "avg_lottery_multiplier": f"{avg_lottery_multiplier:.2f}",
                 "best_fortune": best_fortune,
-                "update_time": now.strftime('%Y-%m-%d %H:%M:%S')
+                "update_time": now.strftime("%Y-%m-%d %H:%M:%S"),
             }
 
             template = jinja2.Template(PERSONAL_STATS_HTML_TEMPLATE)
@@ -810,39 +890,52 @@ class EconStatsPlugin(Star):
 
         except Exception as e:
             logger.error(f"生成个人数据失败: {e}", exc_info=True)
-            yield event.plain_result(f"❌ 生成个人数据时发生错误，请检查后台日志。")
+            yield event.plain_result("❌ 生成个人数据时发生错误，请检查后台日志。")
 
-    async def _display_luck_ranking(self, event: AstrMessageEvent, order: str, title: str, emoji: str):
+    async def _display_luck_ranking(
+        self, event: AstrMessageEvent, order: str, title: str, emoji: str
+    ):
         try:
             economy_api = shared_services.get("economy_api")
             if not economy_api:
-                yield event.plain_result("❌ 错误：EconomyAPI 未加载。"); return
+                yield event.plain_result("❌ 错误：EconomyAPI 未加载。")
+                return
 
-            ranking_data = await economy_api._db.get_lottery_luck_ranking(limit=10, order=order)
+            ranking_data = await economy_api._db.get_lottery_luck_ranking(
+                limit=10, order=order
+            )
 
             if not ranking_data:
-                yield event.plain_result(f"{title}\n--------------------\n暂无足够数据（需要至少有玩家抽奖3次以上）。")
+                yield event.plain_result(
+                    f"{title}\n--------------------\n暂无足够数据（需要至少有玩家抽奖3次以上）。"
+                )
                 return
 
             nickname_api = shared_services.get("nickname_api")
             custom_nicknames = {}
             if nickname_api:
-                user_ids = [row['user_id'] for row in ranking_data]
+                user_ids = [row["user_id"] for row in ranking_data]
                 custom_nicknames = await nickname_api.get_nicknames_batch(user_ids)
-            
+
             entries = [f"{title}\n(仅统计抽奖超过3次的用户)\n--------------------"]
             for i, row in enumerate(ranking_data, 1):
-                user_id = row['user_id']
-                display_name = custom_nicknames.get(user_id) or row['nickname'] or user_id
-                avg_mult = row['avg_mult']
-                play_count = row['play_count']
-                display_name_short = (display_name[:10] + '...') if len(display_name) > 12 else display_name
-                entries.append(f"{emoji} 第 {i} 名: {display_name_short}  均倍: {avg_mult:.2f}x | 次数: {play_count}")
+                user_id = row["user_id"]
+                display_name = (
+                    custom_nicknames.get(user_id) or row["nickname"] or user_id
+                )
+                avg_mult = row["avg_mult"]
+                play_count = row["play_count"]
+                display_name_short = (
+                    (display_name[:10] + "...")
+                    if len(display_name) > 12
+                    else display_name
+                )
+                entries.append(
+                    f"{emoji} 第 {i} 名: {display_name_short}  均倍: {avg_mult:.2f}x | 次数: {play_count}"
+                )
 
             yield event.plain_result("\n".join(entries))
 
         except Exception as e:
             logger.error(f"生成运气排行榜失败: {e}", exc_info=True)
-            yield event.plain_result(f"❌ 生成排行榜时发生错误，请检查后台日志。")
-
-
+            yield event.plain_result("❌ 生成排行榜时发生错误，请检查后台日志。")

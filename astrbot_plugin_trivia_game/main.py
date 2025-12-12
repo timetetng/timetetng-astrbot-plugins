@@ -19,8 +19,8 @@ except ImportError:
     logger.warning("无法导入 shared_services，经济功能将不可用。")
     shared_services = {}
 
+
 class GameState:
-    # ... (此类内容不变)
     def __init__(self, question_data: dict[str, Any], timeout_task: asyncio.Task):
         self.question_data = question_data
         self.hints_given = 0
@@ -29,14 +29,14 @@ class GameState:
         self.wrong_guesses = 0
         self.participants = set()
 
+
 @register(
     "TriviaGame",
     "Gemini",
     "一个调用LLM出题的趣味猜题插件",
-    "3.3.0", # 版本号升级
-    ""
+    "3.3.0",  # 版本号升级
+    "",
 )
-
 class TriviaGamePlugin(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
@@ -45,11 +45,21 @@ class TriviaGamePlugin(Star):
         general_config = self.config.get("general", {})
         self.GAME_TIMEOUT_SECONDS = general_config.get("timeout_seconds", 60)
         self.LLM_TIMEOUT_SECONDS = general_config.get("llm_timeout_seconds", 30)
-        self.LLM_MAX_RETRIES = general_config.get("llm_max_retries", 2) # 此参数在旧逻辑中使用，可保留或移除
+        self.LLM_MAX_RETRIES = general_config.get(
+            "llm_max_retries", 2
+        )  # 此参数在旧逻辑中使用，可保留或移除
 
         content_config = self.config.get("content", {})
-        self.TOPICS = [topic.strip() for topic in content_config.get("topics", "").split(",") if topic.strip()]
-        self.SEED_WORDS = [word.strip() for word in content_config.get("seed_words", "").split(",") if word.strip()]
+        self.TOPICS = [
+            topic.strip()
+            for topic in content_config.get("topics", "").split(",")
+            if topic.strip()
+        ]
+        self.SEED_WORDS = [
+            word.strip()
+            for word in content_config.get("seed_words", "").split(",")
+            if word.strip()
+        ]
 
         llm_params_config = self.config.get("llm_parameters", {})
         self.llm_temperature = llm_params_config.get("temperature", 0.8)
@@ -71,7 +81,7 @@ class TriviaGamePlugin(Star):
         # 防止并发生成的锁
         self.generating_groups = set()
 
-        # --- 新增：历史答案库 ---
+        # 历史答案
         self.history_file = Path("data/trivia_answer_history.json")
         # 结构: {"历史": [["秦始皇", "嬴政"], ["滑铁卢战役"]], "科学": [["光合作用"]]}
         self.answer_history: dict[str, list[list[str]]] = {}
@@ -94,11 +104,14 @@ class TriviaGamePlugin(Star):
     async def _save_history(self):
         try:
             self.history_file.parent.mkdir(parents=True, exist_ok=True)
-            await asyncio.to_thread(self.history_file.write_text, json.dumps(self.answer_history, ensure_ascii=False, indent=4), encoding="utf-8")
+            await asyncio.to_thread(
+                self.history_file.write_text,
+                json.dumps(self.answer_history, ensure_ascii=False, indent=4),
+                encoding="utf-8",
+            )
         except OSError as e:
             logger.error(f"保存历史答案库失败: {e}")
 
-    # --- 新增：精准的核心答案重复检查函数 ---
     def _is_answer_duplicate(self, new_answers: list, topic: str) -> bool:
         """通过比较答案列表，检查题目核心内容是否重复"""
         if not new_answers or topic not in self.answer_history:
@@ -111,7 +124,9 @@ class TriviaGamePlugin(Star):
             old_answers_set = set(str(a).lower().strip() for a in old_answers_list)
             # 只要新旧答案有任何一个交集，就认为是重复题目
             if not new_answers_set.isdisjoint(old_answers_set):
-                logger.warning(f"检测到重复的核心答案。新: {new_answers_set} | 旧: {old_answers_set}")
+                logger.warning(
+                    f"检测到重复的核心答案。新: {new_answers_set} | 旧: {old_answers_set}"
+                )
                 return True
         return False
 
@@ -128,7 +143,11 @@ class TriviaGamePlugin(Star):
     async def _save_stats(self):
         try:
             self.stats_file.parent.mkdir(parents=True, exist_ok=True)
-            await asyncio.to_thread(self.stats_file.write_text, json.dumps(self.user_stats, ensure_ascii=False, indent=4), encoding="utf-8")
+            await asyncio.to_thread(
+                self.stats_file.write_text,
+                json.dumps(self.user_stats, ensure_ascii=False, indent=4),
+                encoding="utf-8",
+            )
         except OSError as e:
             logger.error(f"保存猜题统计数据失败: {e}")
 
@@ -177,8 +196,8 @@ class TriviaGamePlugin(Star):
 1.  你的回答只能是单个词：“正确”或“错误”。
 2.  不要进行任何解释或说明。
 【比赛信息】
--   问题描述：{state.question_data['题目描述']}
--   已知的标准答案列表：{state.question_data['题目可能的答案']}
+-   问题描述：{state.question_data["题目描述"]}
+-   已知的标准答案列表：{state.question_data["题目可能的答案"]}
 -   选手给出的答案：{user_answer}
 【你的裁决】
 请判断选手的答案是否可以被认为是正确的（即使它不在标准答案列表中，但可能是同义词、别称或正确的另一种表述）。
@@ -186,7 +205,9 @@ class TriviaGamePlugin(Star):
 """
         try:
             timeout = validation_config.get("secondary_llm_timeout", 10)
-            response = await asyncio.wait_for(provider.text_chat(prompt), timeout=timeout)
+            response = await asyncio.wait_for(
+                provider.text_chat(prompt), timeout=timeout
+            )
             response_text = response.completion_text.strip()
             logger.info(f"LLM二次校验结果: {response_text}")
             return "正确" in response_text
@@ -200,12 +221,17 @@ class TriviaGamePlugin(Star):
     @filter.on_llm_request()
     async def check_answer_hook(self, event: AstrMessageEvent, req: ProviderRequest):
         group_id = event.get_group_id()
-        if not group_id or group_id not in self.game_states or not self.game_states[group_id].is_active:
+        if (
+            not group_id
+            or group_id not in self.game_states
+            or not self.game_states[group_id].is_active
+        ):
             return
 
         state = self.game_states[group_id]
         user_answer_text = event.message_str.strip()
-        if not user_answer_text: return
+        if not user_answer_text:
+            return
 
         user_id = event.get_sender_id()
         user_name = event.get_sender_name()
@@ -219,16 +245,25 @@ class TriviaGamePlugin(Star):
             state.participants.add(user_id)
             await self._save_stats()
 
-        correct_answers = [str(a).lower().strip() for a in state.question_data["题目可能的答案"]]
+        correct_answers = [
+            str(a).lower().strip() for a in state.question_data["题目可能的答案"]
+        ]
         user_answer_lower = user_answer_text.lower()
 
         is_correct = False
         if user_answer_lower in correct_answers:
             is_correct = True
         else:
-            sim_threshold = self.config.get("validation", {}).get("similarity_threshold", 0.85)
+            sim_threshold = self.config.get("validation", {}).get(
+                "similarity_threshold", 0.85
+            )
             for correct_answer in correct_answers:
-                if difflib.SequenceMatcher(None, user_answer_lower, correct_answer).ratio() >= sim_threshold:
+                if (
+                    difflib.SequenceMatcher(
+                        None, user_answer_lower, correct_answer
+                    ).ratio()
+                    >= sim_threshold
+                ):
                     is_correct = True
                     break
         if not is_correct:
@@ -248,19 +283,28 @@ class TriviaGamePlugin(Star):
                 difficulty_multiplier = {
                     "简单": diff_mults.get("simple", 1.0),
                     "普通": diff_mults.get("normal", 1.3),
-                    "困难": diff_mults.get("hard", 2.0)
+                    "困难": diff_mults.get("hard", 2.0),
                 }.get(difficulty, 1.0)
 
                 penalty_per_guess = rewards_config.get("penalty_per_wrong_guess", 0.1)
                 max_penalty = rewards_config.get("max_wrong_guess_penalty", 0.5)
 
-                penalty_multiplier = max(1.0 - max_penalty, 1.0 - (state.wrong_guesses * penalty_per_guess))
+                penalty_multiplier = max(
+                    1.0 - max_penalty, 1.0 - (state.wrong_guesses * penalty_per_guess)
+                )
 
-                final_reward = int(base_reward * difficulty_multiplier * penalty_multiplier * (0.5 ** state.hints_given))
+                final_reward = int(
+                    base_reward
+                    * difficulty_multiplier
+                    * penalty_multiplier
+                    * (0.5**state.hints_given)
+                )
 
                 daily_cap = rewards_config.get("daily_reward_cap", 1000)
                 today = datetime.now().strftime("%Y-%m-%d")
-                user_daily_data = self.daily_rewards.get(user_id, {"date": "", "total": 0})
+                user_daily_data = self.daily_rewards.get(
+                    user_id, {"date": "", "total": 0}
+                )
 
                 if user_daily_data["date"] != today:
                     user_daily_data["date"], user_daily_data["total"] = today, 0
@@ -269,7 +313,9 @@ class TriviaGamePlugin(Star):
                 actual_reward = min(final_reward, remaining_limit)
 
                 if actual_reward > 0:
-                    await self.economy_api.add_coins(user_id, actual_reward, "猜题游戏胜利")
+                    await self.economy_api.add_coins(
+                        user_id, actual_reward, "猜题游戏胜利"
+                    )
                     user_daily_data["total"] += actual_reward
                     self.daily_rewards[user_id] = user_daily_data
                     reward_message = f"恭喜获得 {actual_reward} 金币！"
@@ -282,7 +328,9 @@ class TriviaGamePlugin(Star):
             matched_answer = ""
             highest_sim = 0.0
             for ans in state.question_data["题目可能的答案"]:
-                sim = difflib.SequenceMatcher(None, user_answer_lower, str(ans).lower().strip()).ratio()
+                sim = difflib.SequenceMatcher(
+                    None, user_answer_lower, str(ans).lower().strip()
+                ).ratio()
                 if sim > highest_sim:
                     highest_sim = sim
                     matched_answer = ans
@@ -299,7 +347,9 @@ class TriviaGamePlugin(Star):
 
         else:
             state.wrong_guesses += 1
-            error_message = event.plain_result(f"🤔 “{user_answer_text}”似乎不是正确答案哦，再想想吧！")
+            error_message = event.plain_result(
+                f"🤔 “{user_answer_text}”似乎不是正确答案哦，再想想吧！"
+            )
             await event.send(error_message)
             event.stop_event()
 
@@ -327,7 +377,9 @@ class TriviaGamePlugin(Star):
             if difficulty:
                 if difficulty in VALID_DIFFICULTIES:
                     selected_difficulty = difficulty
-                    yield event.plain_result(f"已收到您的请求，正在准备一道【{difficulty}】难度的题目...")
+                    yield event.plain_result(
+                        f"已收到您的请求，正在准备一道【{difficulty}】难度的题目..."
+                    )
                 else:
                     error_msg = f"'{difficulty}' 不是一个有效的难度选项。\n请从以下选项中选择：{', '.join(VALID_DIFFICULTIES)}"
                     yield event.plain_result(error_msg)
@@ -335,14 +387,18 @@ class TriviaGamePlugin(Star):
             else:
                 yield event.plain_result("正在随机挑选领域和难度，请稍等...")
                 diff_weights = [0.3, 0.5, 0.2]
-                selected_difficulty = random.choices(VALID_DIFFICULTIES, weights=diff_weights, k=1)[0]
+                selected_difficulty = random.choices(
+                    VALID_DIFFICULTIES, weights=diff_weights, k=1
+                )[0]
 
             if not self.TOPICS:
                 yield event.plain_result("错误：管理员尚未配置任何出题领域。")
                 return
 
             weights = [
-                (0.2 * (list(self.topic_history).index(topic) + 1)) if topic in self.topic_history else 1.0
+                (0.2 * (list(self.topic_history).index(topic) + 1))
+                if topic in self.topic_history
+                else 1.0
                 for topic in self.TOPICS
             ]
             selected_topic = random.choices(self.TOPICS, weights=weights, k=1)[0]
@@ -353,16 +409,25 @@ class TriviaGamePlugin(Star):
                 yield event.plain_result("哎呀，获取大语言模型失败了，暂时无法出题。")
                 return
 
-            selected_seed_word = random.choice(self.SEED_WORDS) if self.SEED_WORDS else "普通"
+            selected_seed_word = (
+                random.choice(self.SEED_WORDS) if self.SEED_WORDS else "普通"
+            )
 
             # --- 轻量级前置规避 ---
             avoid_answers_prompt = ""
-            if selected_topic in self.answer_history and self.answer_history[selected_topic]:
-                sample_answers = random.sample(self.answer_history[selected_topic], k=min(5, len(self.answer_history[selected_topic])))
-                avoid_keywords = {item for sublist in sample_answers for item in sublist}
+            if (
+                selected_topic in self.answer_history
+                and self.answer_history[selected_topic]
+            ):
+                sample_answers = random.sample(
+                    self.answer_history[selected_topic],
+                    k=min(5, len(self.answer_history[selected_topic])),
+                )
+                avoid_keywords = {
+                    item for sublist in sample_answers for item in sublist
+                }
                 avoid_answers_prompt = f"5.  请尽量避免出核心答案是关于 '{'、'.join(avoid_keywords)}' 的题目。"
 
-            # --- 第一次尝试的 Prompt ---
             prompt_attempt_1 = f"""
 请你扮演一个知识渊博的出题人，为我设计一个题目。
 # 核心要求
@@ -386,16 +451,23 @@ class TriviaGamePlugin(Star):
             question_data = None
             raw_llm_text = ""
 
-            # --- 第一次生成尝试 ---
             try:
-                logger.info(f"为群组 {group_id} 首次生成题目... 领域: {selected_topic}, 难度: {selected_difficulty}")
+                logger.info(
+                    f"为群组 {group_id} 首次生成题目... 领域: {selected_topic}, 难度: {selected_difficulty}"
+                )
                 llm_resp = await asyncio.wait_for(
-                    provider.text_chat(prompt_attempt_1, temperature=self.llm_temperature, top_p=self.llm_top_p),
-                    timeout=self.LLM_TIMEOUT_SECONDS
+                    provider.text_chat(
+                        prompt_attempt_1,
+                        temperature=self.llm_temperature,
+                        top_p=self.llm_top_p,
+                    ),
+                    timeout=self.LLM_TIMEOUT_SECONDS,
                 )
                 raw_llm_text = llm_resp.completion_text if llm_resp else ""
             except asyncio.TimeoutError:
-                yield event.plain_result("出题超时了，我的思路可能有点卡壳，请稍后再试吧！")
+                yield event.plain_result(
+                    "出题超时了，我的思路可能有点卡壳，请稍后再试吧！"
+                )
                 return
             except Exception as e:
                 logger.error(f"LLM首次请求失败: {e}")
@@ -407,21 +479,29 @@ class TriviaGamePlugin(Star):
                 try:
                     start_index = raw_llm_text.find("{")
                     end_index = raw_llm_text.rfind("}")
-                    if start_index == -1 or end_index == -1: raise ValueError("JSON not found")
+                    if start_index == -1 or end_index == -1:
+                        raise ValueError("JSON not found")
                     json_part = raw_llm_text[start_index : end_index + 1]
                     parsed_data = json.loads(json_part)
 
-                    if not all(k in parsed_data for k in ["题目描述", "题目可能的答案", "题目难度", "答案提示"]):
-                         raise ValueError("JSON missing required keys")
+                    if not all(
+                        k in parsed_data
+                        for k in ["题目描述", "题目可能的答案", "题目难度", "答案提示"]
+                    ):
+                        raise ValueError("JSON missing required keys")
 
                     # 检查是否重复
-                    if not self._is_answer_duplicate(parsed_data.get("题目可能的答案", []), selected_topic):
-                        question_data = parsed_data # 成功，不重复！
+                    if not self._is_answer_duplicate(
+                        parsed_data.get("题目可能的答案", []), selected_topic
+                    ):
+                        question_data = parsed_data  # 成功，不重复！
                     else:
                         # --- 触发“纠错式”二次生成 ---
                         yield event.plain_result("这题好像出过了，我立即换一题...")
 
-                        repeated_answers = "、".join(map(str, parsed_data.get("题目可能的答案", ["未知"])))
+                        repeated_answers = "、".join(
+                            map(str, parsed_data.get("题目可能的答案", ["未知"]))
+                        )
                         prompt_attempt_2 = f"""
 你是一个出题人。我刚才让你就【{selected_topic}】领域出一个【{selected_difficulty}】难度的题目，但你给我的题目核心答案是关于【{repeated_answers}】的，这个和我题库里的重复了。
 
@@ -429,24 +509,37 @@ class TriviaGamePlugin(Star):
 
 请务必保持与之前完全相同的JSON格式输出。
 """
-                        logger.info(f"检测到答案重复，进行纠错式二次生成... 规避答案: {repeated_answers}")
-                        llm_resp_2 = await asyncio.wait_for(
-                            provider.text_chat(prompt_attempt_2, temperature=self.llm_temperature + 0.1), # 稍微提高一点随机性
-                            timeout=self.LLM_TIMEOUT_SECONDS
+                        logger.info(
+                            f"检测到答案重复，进行纠错式二次生成... 规避答案: {repeated_answers}"
                         )
-                        raw_llm_text_2 = llm_resp_2.completion_text if llm_resp_2 else ""
+                        llm_resp_2 = await asyncio.wait_for(
+                            provider.text_chat(
+                                prompt_attempt_2, temperature=self.llm_temperature + 0.1
+                            ),  # 稍微提高一点随机性
+                            timeout=self.LLM_TIMEOUT_SECONDS,
+                        )
+                        raw_llm_text_2 = (
+                            llm_resp_2.completion_text if llm_resp_2 else ""
+                        )
                         if raw_llm_text_2:
-                             start_index_2 = raw_llm_text_2.find("{")
-                             end_index_2 = raw_llm_text_2.rfind("}")
-                             if start_index_2 == -1 or end_index_2 == -1: raise ValueError("JSON not found in retry")
-                             json_part_2 = raw_llm_text_2[start_index_2 : end_index_2 + 1]
-                             question_data = json.loads(json_part_2) # 直接采纳第二次的结果
+                            start_index_2 = raw_llm_text_2.find("{")
+                            end_index_2 = raw_llm_text_2.rfind("}")
+                            if start_index_2 == -1 or end_index_2 == -1:
+                                raise ValueError("JSON not found in retry")
+                            json_part_2 = raw_llm_text_2[
+                                start_index_2 : end_index_2 + 1
+                            ]
+                            question_data = json.loads(
+                                json_part_2
+                            )  # 直接采纳第二次的结果
                 except Exception as e:
-                     logger.error(f"处理LLM题目时出错: {e}\n原始返回: {raw_llm_text}")
+                    logger.error(f"处理LLM题目时出错: {e}\n原始返回: {raw_llm_text}")
 
             # --- 最后处理 ---
             if not question_data:
-                yield event.plain_result("糟糕，我想题目的时候走神了，没想好。再试一次吧！")
+                yield event.plain_result(
+                    "糟糕，我想题目的时候走神了，没想好。再试一次吧！"
+                )
                 return
 
             # 成功获得题目，存入历史库并开始游戏
@@ -455,7 +548,9 @@ class TriviaGamePlugin(Star):
                 if selected_topic not in self.answer_history:
                     self.answer_history[selected_topic] = []
                 # 确保答案是字符串
-                self.answer_history[selected_topic].append([str(ans) for ans in new_answers])
+                self.answer_history[selected_topic].append(
+                    [str(ans) for ans in new_answers]
+                )
                 await self._save_history()
 
             timeout_task = asyncio.create_task(self._game_timeout(group_id, event))
@@ -477,7 +572,7 @@ class TriviaGamePlugin(Star):
             if group_id in self.generating_groups:
                 self.generating_groups.remove(group_id)
 
-    @filter.command("猜题排行", alias={"猜题榜","答题榜"})
+    @filter.command("猜题排行", alias={"猜题榜", "答题榜"})
     async def show_leaderboard(self, event: AstrMessageEvent):
         if not self.user_stats:
             yield event.plain_result("还没有任何玩家记录，快来玩一局吧！")
@@ -499,7 +594,11 @@ class TriviaGamePlugin(Star):
     @filter.command("结束答题", alias={"结束"})
     async def end_game(self, event: AstrMessageEvent):
         group_id = event.get_group_id()
-        if not group_id or group_id not in self.game_states or not self.game_states[group_id].is_active:
+        if (
+            not group_id
+            or group_id not in self.game_states
+            or not self.game_states[group_id].is_active
+        ):
             yield event.plain_result("当前没有正在进行的猜题游戏哦。")
             return
         state = self.game_states[group_id]
@@ -516,17 +615,18 @@ class TriviaGamePlugin(Star):
     @filter.command("提示")
     async def get_hint(self, event: AstrMessageEvent):
         group_id = event.get_group_id()
-        if not group_id or group_id not in self.game_states or not self.game_states[group_id].is_active:
+        if (
+            not group_id
+            or group_id not in self.game_states
+            or not self.game_states[group_id].is_active
+        ):
             return
         state = self.game_states[group_id]
         hints_list = state.question_data["答案提示"]
         if state.hints_given < len(hints_list):
             hint = hints_list[state.hints_given]
             state.hints_given += 1
-            yield event.plain_result(
-                f"🤫 提示来啦 (第{state.hints_given}条)：\n"
-                f"{hint}"
-            )
+            yield event.plain_result(f"🤫 提示来啦 (第{state.hints_given}条)：\n{hint}")
         else:
             yield event.plain_result("🤔 所有的提示都已经给完啦，靠你自己咯！")
 
@@ -541,7 +641,9 @@ class TriviaGamePlugin(Star):
                     f"公布答案：【{answers_str}】\n"
                     f"下次继续努力哦！"
                 )
-                await self.context.send_message(event.unified_msg_origin, timeout_message)
+                await self.context.send_message(
+                    event.unified_msg_origin, timeout_message
+                )
                 del self.game_states[group_id]
         except asyncio.CancelledError:
             logger.info(f"群组 {group_id} 的猜题游戏计时器被正常取消。")

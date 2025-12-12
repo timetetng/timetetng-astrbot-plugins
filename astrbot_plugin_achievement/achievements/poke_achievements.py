@@ -29,13 +29,12 @@ ACHIEVEMENTS = [
         "reward_coins": 9999,
         "hidden": True,
     },
-
     # --- [新增] “帽子”专属成就 ---
     {
         "id": "hat_poked_100",
         "title": "哎呀，我的帽子",
         "description": "累计100次对菲比的帽子动手动脚",
-        "icon_path": "data/plugins/astrbot_plugin_achievement/assets/icons/phoebe/pb7.png", # 建议路径，请替换为你的图标
+        "icon_path": "data/plugins/astrbot_plugin_achievement/assets/icons/phoebe/pb7.png",  # 建议路径，请替换为你的图标
         "rarity": "mythic",
         "reward_coins": 2500,
         "hidden": True,
@@ -44,9 +43,9 @@ ACHIEVEMENTS = [
         "id": "poke_low_favour",
         "title": "别碰我",
         "description": "在菲比好感度低于-150的时候戳了她。",
-        "icon_path": "data/plugins/astrbot_plugin_achievement/assets/icons/phoebe/pb3.png", # 建议路径，请替换为你的图标
+        "icon_path": "data/plugins/astrbot_plugin_achievement/assets/icons/phoebe/pb3.png",  # 建议路径，请替换为你的图标
         "rarity": "epic",
-        "reward_coins": -1000, # 负数奖励即为惩罚
+        "reward_coins": -1000,  # 负数奖励即为惩罚
         "hidden": True,
     },
 ]

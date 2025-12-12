@@ -7,12 +7,14 @@
 #     'miracle': "奇迹", 'flawless': "无瑕"
 # }
 
+
 async def check_first_coin(apis: dict, user_id: str) -> bool:
     """检查是否拥有大于0的金币"""
     economy_api = apis.get("economy_api")
     if not economy_api:
         return False
     return await economy_api.get_coins(user_id) > 0
+
 
 async def check_become_rich(apis: dict, user_id: str) -> bool:
     """检查金币是否达到10000"""
@@ -22,6 +24,7 @@ async def check_become_rich(apis: dict, user_id: str) -> bool:
     coins = await economy_api.get_coins(user_id)
     return coins >= 10000
 
+
 async def check_first_millionaire(apis: dict, user_id: str) -> bool:
     """检查用户金币是否达到一百万"""
     economy_api = apis.get("economy_api")
@@ -30,6 +33,7 @@ async def check_first_millionaire(apis: dict, user_id: str) -> bool:
     # 假设 get_coins 是一个异步方法
     return await economy_api.get_coins(user_id) >= 1_000_000
 
+
 async def check_first_10M(apis: dict, user_id: str) -> bool:
     """检查用户金币是否达到一千万"""
     economy_api = apis.get("economy_api")
@@ -37,6 +41,7 @@ async def check_first_10M(apis: dict, user_id: str) -> bool:
         return False
     # 假设 get_coins 是一个异步方法
     return await economy_api.get_coins(user_id) >= 10_000_000
+
 
 # 必须提供一个名为 ACHIEVEMENTS 的列表，其中包含所有成就的定义字典
 ACHIEVEMENTS = [
@@ -47,7 +52,7 @@ ACHIEVEMENTS = [
         "icon_path": "https://i.mcmod.cn/item/icon/128x128/6/63128.png?v=1",
         "rarity": "common",  # 稀有度，需要与你的图片生成器配置对应
         "reward_coins": 1000,
-        "check_func": check_first_coin, # 关联检查函数
+        "check_func": check_first_coin,  # 关联检查函数
     },
     {
         "id": "have10K",
@@ -99,5 +104,3 @@ ACHIEVEMENTS = [
         "hidden": True,  # 明确标记为隐藏，用于控制显示
     },
 ]
-
-

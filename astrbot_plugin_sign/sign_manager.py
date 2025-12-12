@@ -32,9 +32,13 @@ class SignManager:
         return fortune_levels[fortune_index], fortune_value
 
     @staticmethod
-    def format_sign_result(user_data: dict[str, Any], coins_got: int,
-                             coins_gift: int, fortune_result: str,
-                             fortune_value: int) -> str:
+    def format_sign_result(
+        user_data: dict[str, Any],
+        coins_got: int,
+        coins_gift: int,
+        fortune_result: str,
+        fortune_value: int,
+    ) -> str:
         """格式化签到结果"""
         return (
             f"签到成功喵~\n"

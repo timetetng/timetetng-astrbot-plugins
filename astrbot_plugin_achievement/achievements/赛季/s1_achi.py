@@ -7,10 +7,10 @@ ACHIEVEMENTS = [
         "description": "S1赛季总资产第一",
         "icon_path": "data/plugins/astrbot_plugin_achievement/assets/icons/minecraft/下界合金锭.png",
         "rarity": "flawless",  # 使用最高稀有度
-        "reward_coins": 0, # 可以设定奖励，也可以不设
+        "reward_coins": 0,  # 可以设定奖励，也可以不设
         "check_func": None,
         "unique": True,
-        "hidden": True,    # 关键点：设置为None，系统将永远不会自动检查它
+        "hidden": True,  # 关键点：设置为None，系统将永远不会自动检查它
     },
     {
         "id": "s1_rank2",
@@ -53,5 +53,5 @@ ACHIEVEMENTS = [
         "reward_coins": 0,
         "check_func": None,
         "hidden": True,
-    }
+    },
 ]
