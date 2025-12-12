@@ -1,0 +1,5 @@
+name: astrbot_plugin_sleep
+desc: 这是 AstrBot 的睡觉插件，可以让你的AI在规定时间内睡觉。
+version: v1.1.0
+author: timetetng
+repo:

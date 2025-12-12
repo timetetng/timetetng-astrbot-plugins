@@ -1,0 +1,47 @@
+{
+  "character_name": {
+    "description": "机器人的人格名，用于睡眠模式和关机模式提示词。",
+    "type": "string",
+    "default": "菲比"
+  },
+  "default_sleep_enabled": {
+    "description": "默认是否开启夜间睡眠功能。",
+    "type": "bool",
+    "default": false
+  },
+  "default_sleep_start_hour": {
+    "description": "启用睡眠模式时的默认开始小时 (0-23)。",
+    "type": "int",
+    "default": 0
+  },
+  "default_sleep_end_hour": {
+    "description": "启用睡眠模式时的默认结束小时 (0-23, 如果小于开始小时则为次日)。",
+    "type": "int",
+    "default": 6
+  },
+  "pre_sleep_warning_minutes": {
+    "description": "在设定睡眠时间开始前多少分钟发送主动睡觉通知/LLM回复变为困倦状态（0-59）。",
+    "type": "int",
+    "default": 10
+  },
+  "default_shutdown_enabled": {
+    "description": "默认是否开启夜间关机功能。",
+    "type": "bool",
+    "default": false
+  },
+  "default_shutdown_start_hour": {
+    "description": "夜间关机模式时的默认开始小时 (0-23)。",
+    "type": "int",
+    "default": 2
+  },
+  "default_shutdown_end_hour": {
+    "description": "夜间关机模式时的默认结束小时 (0-23, 如果小于开始小时则为次日)。",
+    "type": "int",
+    "default": 5
+  },
+  "pre_shutdown_warning_minutes": {
+    "description": "在设定关机时间开始前多少分钟发送主动通知。",
+    "type": "int",
+    "default": 5
+  }
+}
