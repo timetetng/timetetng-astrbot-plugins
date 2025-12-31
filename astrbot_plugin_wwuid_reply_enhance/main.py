@@ -31,7 +31,7 @@ class WwuidReplyEnhance(Star):
             )
             return
 
-        pattern = r"(上传.*?((面板|面包|🍞|背景)图)$)|((评分|查分).*)"
+        pattern = r"((上传|查看).*?((面板|面包|🍞|背景)图)$)|((评分|查分).*)"
         match = re.search(pattern, event.message_str)
         if not match:
             logger.debug(

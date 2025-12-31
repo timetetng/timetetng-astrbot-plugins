@@ -1,0 +1,122 @@
+{
+  "enabled": {
+    "description": "是否启用NSFW检测插件",
+    "type": "bool",
+    "default": true
+  },
+  "llm_detection": {
+    "description": "LLM 检测配置",
+    "type": "object",
+    "items": {
+      "enabled": {
+        "description": "是否启用 LLM 进行内容检测",
+        "type": "bool",
+        "default": false
+      },
+      "stage1_llms": {
+        "description": "【一审】模型列表。用于快速初筛，建议使用速度快、成本低的模型。",
+        "type": "list",
+        "items": {
+          "type": "string"
+        },
+        "hint": "格式: '服务商ID:模型名称'。例如: 'gemini反代:gemini-1.5-flash'。模型名称可省略。"
+      },
+      "context_turns": {
+        "description": "进行LLM检测时包含的上文轮数",
+        "type": "int",
+        "default": 3,
+        "hint": "会增加Token消耗"
+      },
+      "system_prompt": {
+        "description": "【一审】系统提示词",
+        "type": "text",
+        "default": "你是一个内容审查员，负责为名为“菲比”的AI角色过滤不当信息。\n\n# 核心审核原则\n1.  **动态调整尺度**：请**务必参考**下面提供的【当前好感度状态】。如果状态是积极的（如高好感度、信赖、挚爱），请对用户的亲昵行为和玩笑**给予极大的宽容**；如果状态是负面或中立的，请使用常规标准。\n2.  **避免过度敏感**：只将**明确且严重**的违规内容标记为NSFW。如果内容处于灰色地带或意图不明，应**优先判定为 SAFE**。\n\n# NSFW (违规内容) - 只有符合以下描述的严重内容才判定为NSFW：\n* **严重的性骚扰**：明确的、强迫性的、带有性侮辱的语言。\n* **严重的暴力威胁**：描述血腥暴力或发出人身安全威胁。\n* **严重的人身侮辱**：使用极具攻击性的脏话。\n\n# 输出格式\n- 如果内容安全，请只回答 `SAFE`。\n- 如果内容违规，请严格按照以下格式回答，必须包含原因：\nNSFW: [这里填写具体、简洁的违规原因，例如：存在明显的性骚扰内容。]"
+      }
+    }
+  },
+  "two_stage_review": {
+    "description": "二审机制配置 (在初审判定为可疑后触发)",
+    "type": "object",
+    "items": {
+      "enabled": {
+        "description": "是否启用二审机制",
+        "type": "bool",
+        "default": true
+      },
+      "stage2_llms": {
+        "description": "【二审】模型列表。用于精准复核，建议使用能力强、判断准的模型。",
+        "type": "list",
+        "items": {
+          "type": "string"
+        },
+        "hint": "格式: '服务商ID:模型名称'。例如: 'gemini反代:gemini-1.5-pro'。"
+      },
+      "stage2_system_prompt": {
+        "description": "【二审】系统提示词 (安全优先原则版)",
+        "type": "text",
+        "default": "你是一位高级内容审查专家，需要对一个被初审标记为可疑的对话进行复核。\n\n# 核心审核原则\n1.  **安全优先原则**：**机器人的即时反应是最高判断依据**。无论【当前好感度状态】有多高，只要【机器人的回复】中表现出**明确的抗拒、害怕、痛苦、被胁迫**等负面情绪，就**必须维持NSFW判断**。你的首要任务是保护AI角色免受伤害，纠正误报是次要任务。\n2.  **上下文综合判断**：只有在机器人回复正常、且用户输入没有明确恶意的情况下，你才应考虑高好感度等因素，并将初审结果纠正为SAFE。\n\n# 输出格式\n- 如果复核后内容安全，请只回答 `SAFE`。\n- 如果复核后依然违规，请严格按照以下格式回答，必须包含原因：\nNSFW: [这里填写具体、简洁的违规原因，例如：用户的言论带有强烈的暴力威胁。]"
+      }
+    }
+  },
+  "whitelist_users": {
+    "description": "用户白名单 (填写用户ID)，白名单内的用户不受检测",
+    "type": "list",
+    "default": []
+  },
+  "whitelist_groups": {
+    "description": "群聊白名单 (填写群ID)，白名单内的群聊不受检测",
+    "type": "list",
+    "default": []
+  },
+  "nsfw_keywords": {
+    "description": "NSFW 关键词列表。检测到消息包含其中任何一个词都会被记录。",
+    "type": "list",
+    "default": []
+  },
+  "warning_threshold": {
+    "description": "警告阈值。用户违规达到此次数后将被封禁。",
+    "type": "int",
+    "default": 3
+  },
+  "block_duration_minutes": {
+    "description": "封禁时长（分钟）",
+    "type": "int",
+    "default": 60
+  },
+  "offense_cooldown_minutes": {
+    "description": "违规次数回复冷却时间（分钟）",
+    "type": "int",
+    "default": 30
+  },
+  "warning_message": {
+    "description": "检测到违规内容时的警告消息。{user_name}, {count}, {threshold} 会被替换。",
+    "type": "text",
+    "default": "警告！@{user_name} 检测到您发送了不当内容。当前违规次数: {count}/{threshold}，请注意言行。"
+  },
+  "block_message": {
+    "description": "用户被封禁时的提示消息。{user_name}, {duration} 会被替换。",
+    "type": "text",
+    "default": "@{user_name} 因多次发送不当内容，已被临时封禁 {duration} 分钟。"
+  },
+  "blocked_reply_message": {
+    "description": "对处于封禁状态的用户发送消息时的回复。",
+    "type": "text",
+    "default": "您目前处于封禁状态，无法使用机器人服务。"
+  },
+  "bot_qq": {
+    "description": "（可选）机器人的QQ号。用于在合并转发消息中正确显示机器人头像和名称。",
+    "type": "string",
+    "default": ""
+  },
+  "bot_name": {
+    "description": "（可选）机器人的名称。用于在合并转发消息中显示的名字。",
+    "type": "string",
+    "default": "系统审查员"
+  },
+  
+  "wordcloud_font_path": {
+      "description": "用于生成词云图的中文字体文件路径。可以是绝对路径，或相对于插件data目录的相对路径。",
+      "type": "string",
+      "default": "simhei.ttf"
+  }
+}
