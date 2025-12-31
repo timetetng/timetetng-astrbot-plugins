@@ -73,8 +73,8 @@ class FavourProPlugin(Star):
         if not self.db_manager._db: return
         user_id = event.get_sender_id()
         session_id = self._get_session_id(event)
+        state = await self.logic_service.try_trigger_recovery(user_id, session_id)
         
-        state = await self.db_manager.get_user_state(user_id, session_id)
         prompt = self.logic_service.get_context_prompt(state)
         req.system_prompt += prompt
 
@@ -97,7 +97,7 @@ class FavourProPlugin(Star):
         
         user_id = event.get_sender_id()
         session_id = self._get_session_id(event)
-        state = await self.db_manager.get_user_state(user_id, session_id)
+        state = await self.logic_service.try_trigger_recovery(user_id, session_id)
         
         msg = f"我眼中的你：\n好感度：{state['favour']}\n关系：{state['relationship']}\n印象：{state['attitude']}"
         

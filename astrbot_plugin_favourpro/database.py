@@ -25,7 +25,8 @@ class DatabaseManager:
             "daily_favour_gain": "INTEGER DEFAULT 0",
             "last_update_date": "TEXT DEFAULT '1970-01-01'",
             "daily_gift_gain": "INTEGER DEFAULT 0",
-            "relationship_lock_until": "INTEGER DEFAULT 0"
+            "relationship_lock_until": "INTEGER DEFAULT 0",
+            "last_recovery_ts": "INTEGER DEFAULT 0"  # [新增] 记录上次恢复结算的时间戳
         }
         
         for col_name, col_def in new_columns.items():

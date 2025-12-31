@@ -90,3 +90,61 @@ class LogicService:
         await self.db.update_user_state(user_id, current_state, session_id)
         
         return final_text
+
+    async def try_trigger_recovery(self, user_id: str, session_id: str | None) -> dict:
+        """
+        尝试触发好感度自然恢复机制 (遗忘机制)
+        规则:
+        1. Favour < -100: +10点/小时, 上限 -100
+        2. -100 <= Favour < 0: +2点/小时, 上限 0
+        """
+        state = await self.db.get_user_state(user_id, session_id)
+        current_favour = state["favour"]
+        
+        # 如果好感度是非负的，不需要恢复，直接更新时间戳并返回
+        if current_favour >= 0:
+            state["last_recovery_ts"] = int(datetime.now().timestamp())
+            await self.db.update_user_state(user_id, state, session_id)
+            return state
+
+        now_ts = int(datetime.now().timestamp())
+        last_ts = state.get("last_recovery_ts", 0)
+        
+
+        if last_ts == 0:
+            state["last_recovery_ts"] = now_ts
+            await self.db.update_user_state(user_id, state, session_id)
+            return state
+
+        # 计算经过的小时数
+        delta_seconds = now_ts - last_ts
+        hours_passed = delta_seconds // 3600
+
+        if hours_passed < 1:
+            return state # 不足一小时，不处理
+        
+        recovered_favour = current_favour
+        
+        for _ in range(hours_passed):
+            if recovered_favour < -100:
+                recovered_favour += 10
+                # 这一级最多恢复到 -100
+                if recovered_favour > -100:
+                    recovered_favour = -100
+            elif -100 <= recovered_favour < 0:
+                recovered_favour += 2
+                # 这一级最多恢复到 0
+                if recovered_favour > 0:
+                    recovered_favour = 0
+            else:
+                break # 已经回正，停止恢复
+
+        if recovered_favour != current_favour:
+            logger.info(f"用户 {user_id} 触发遗忘机制: {hours_passed}小时, 好感 {current_favour} -> {recovered_favour}")
+            state["favour"] = recovered_favour
+            
+        # 更新结算时间为当前时间（扣除多余的分钟部分，或者直接当前时间皆可，这里用当前时间简化）
+        state["last_recovery_ts"] = now_ts
+        await self.db.update_user_state(user_id, state, session_id)
+        
+        return state
