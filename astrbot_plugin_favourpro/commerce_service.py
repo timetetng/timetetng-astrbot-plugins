@@ -1,5 +1,4 @@
 from datetime import datetime
-from astrbot.api import logger
 from .const import DAILY_GIFT_LIMIT, DEFAULT_STATE
 from .database import DatabaseManager
 from .api import FavourProAPI
@@ -126,7 +125,7 @@ class CommerceService:
             state["last_update_date"] = today_str
             await self.api.add_favour(user_id, actual_gain)
             
-            cost_msg = f"背包消耗" if from_inv else f"消费 {price} 金币"
+            cost_msg = "背包消耗" if from_inv else f"消费 {price} 金币"
             return f"赠送成功！好感度 +{actual_gain}。\n💰 {cost_msg}"
             
         elif effect_type == "reset_favour":

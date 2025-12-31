@@ -1,6 +1,5 @@
 import time
 from pathlib import Path
-from astrbot.api import logger
 
 # 尝试导入绘图库
 try:

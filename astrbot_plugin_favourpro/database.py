@@ -1,6 +1,6 @@
 import aiosqlite
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from astrbot.api import logger
 from .const import DEFAULT_STATE
 
