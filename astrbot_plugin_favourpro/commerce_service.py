@@ -126,7 +126,7 @@ class CommerceService:
             await self.api.add_favour(user_id, actual_gain)
             
             cost_msg = "背包消耗" if from_inv else f"消费 {price} 金币"
-            return f"赠送成功！好感度 +{actual_gain}。\n💰 {cost_msg}"
+            return f"赠送成功！菲比很喜欢！\n好感度 +{actual_gain}。\n💰 {cost_msg}"
             
         elif effect_type == "reset_favour":
             if quantity > 1: return "重置卡只能用一张。"

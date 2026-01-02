@@ -10,33 +10,54 @@ class FavourProAPI:
 
     def __init__(self, db_manager: DatabaseManager):
         self.db = db_manager
-
     logic_service = None 
 
     async def get_user_state(self, user_id: str, session_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """获取用户状态（自动触发遗忘恢复结算）"""
         if getattr(self, "logic_service", None):
             state = await self.logic_service.try_trigger_recovery(user_id, session_id)
             return state
+        
+        # 兜底：直接查库
         state = await self.db.get_user_state(user_id, session_id)
         return state if state != DEFAULT_STATE else None
 
+    async def add_favour(self, user_id: str, amount: int, session_id: Optional[str] = None):
+        """增加或减少好感度"""
+        # 1. 获取当前状态
+        if getattr(self, "logic_service", None):
+            current_state = await self.logic_service.try_trigger_recovery(user_id, session_id)
+        else:
+            current_state = await self.db.get_user_state(user_id, session_id)
+
+        # 2. 执行加分
+        current_state["favour"] += amount
+        
+        # 3. 保存
+        await self.db.update_user_state(user_id, current_state, session_id)
+
     async def set_favour(self, user_id: str, amount: int, session_id: Optional[str] = None):
+        """直接设置好感度数值"""
         current_state = await self.db.get_user_state(user_id, session_id)
         current_state["favour"] = amount
         await self.db.update_user_state(user_id, current_state, session_id)
 
     async def set_attitude(self, user_id: str, attitude: str, session_id: Optional[str] = None):
+        """设置印象"""
         current_state = await self.db.get_user_state(user_id, session_id)
         current_state["attitude"] = attitude
         await self.db.update_user_state(user_id, current_state, session_id)
 
     async def set_relationship(self, user_id: str, relationship: str, session_id: Optional[str] = None):
+        """设置关系"""
         current_state = await self.db.get_user_state(user_id, session_id)
         current_state["relationship"] = relationship
         await self.db.update_user_state(user_id, current_state, session_id)
 
     async def get_favour_ranking(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """获取好感度排行"""
         return await self.db.get_favour_ranking(limit)
 
     async def get_dislike_ranking(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """获取厌恶度排行"""
         return await self.db.get_dislike_ranking(limit)
