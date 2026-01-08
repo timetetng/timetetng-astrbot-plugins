@@ -127,12 +127,12 @@ class LogicService:
         
         for _ in range(hours_passed):
             if recovered_favour < -100:
-                recovered_favour += 10
+                recovered_favour += 20
                 # 这一级最多恢复到 -100
                 if recovered_favour > -100:
                     recovered_favour = -100
             elif -100 <= recovered_favour < 0:
-                recovered_favour += 2
+                recovered_favour += 5
                 # 这一级最多恢复到 0
                 if recovered_favour > 0:
                     recovered_favour = 0
