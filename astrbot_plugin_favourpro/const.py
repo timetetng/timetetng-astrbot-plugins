@@ -9,6 +9,7 @@ DEFAULT_STATE = {
     "last_update_date": "1970-01-01",
     "daily_gift_gain": 0,
     "relationship_lock_until": 0,
+    "last_recovery_ts": 0,
 }
 
 # 限制配置
@@ -17,7 +18,7 @@ DAILY_GIFT_LIMIT = 30
 
 # 正则表达式
 BLOCK_PATTERN = re.compile(r"\[\s*(?:Favour:|Attitude:|Relationship:).*?\]", re.DOTALL)
-# 修改点：增加 [+-]? 以更精准捕获符号，例如 +5, -10
+
 FAVOUR_PATTERN = re.compile(r"Favour:\s*([+-]?\d+)")
 ATTITUDE_PATTERN = re.compile(r"Attitude:\s*(.+?)(?=\s*,\s*Relationship:|\])")
 RELATIONSHIP_PATTERN = re.compile(r"Relationship:\s*(.+?)(?=\s*\])")

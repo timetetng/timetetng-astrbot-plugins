@@ -29,7 +29,6 @@ class LLMBankerPlugin(Star):
         self.economy_api = None
         self.stock_api = None
 
-        # [修改] 初始化任务句柄，用于后续的清理
         self._reset_task_handle: asyncio.Task | None = None
         self._tax_task_handle: asyncio.Task | None = None
 
@@ -59,7 +58,6 @@ class LLMBankerPlugin(Star):
 
         if self.economy_api and self.stock_api:
             logger.info("LLM Banker 插件核心API加载完成，功能已就绪。")
-            # [修改] 存储任务句柄
             self._reset_task_handle = asyncio.create_task(self._daily_reset_task())
             self._tax_task_handle = asyncio.create_task(
                 self._daily_tax_collection_task()
@@ -69,7 +67,7 @@ class LLMBankerPlugin(Star):
 
     async def _daily_reset_task(self):
         """每日午夜清空用户津贴记录"""
-        try:  # [修改] 添加异常捕获以响应取消
+        try:
             while True:
                 now = datetime.now()
                 midnight = (now + timedelta(days=1)).replace(
@@ -89,7 +87,7 @@ class LLMBankerPlugin(Star):
 
     async def _daily_tax_collection_task(self):
         """每日按时对总资产排名前10的玩家征税"""
-        try:  # [修改] 添加异常捕获以响应取消
+        try:
             while True:
                 # 1. 获取配置的税收时间
                 tax_time_str = self.config.get("tax_collection_time", "00:00:05")
@@ -151,7 +149,6 @@ class LLMBankerPlugin(Star):
                     for i, player_data in enumerate(ranking):
                         user_id = player_data.get("user_id")
 
-                        # --- [修复 1: 处理 total_assets] ---
                         assets_data = player_data.get("total_assets")
                         total_assets_numeric = 0.0
 
@@ -171,15 +168,13 @@ class LLMBankerPlugin(Star):
                             )
                             total_assets_numeric = 0.0
 
-                        # --- [修复 2: 处理 tax_rate] ---
                         try:
                             tax_rate = float(tax_rates[i])
                         except (ValueError, TypeError, IndexError):
                             logger.error(
                                 f"玩家 {user_id} 的税率 tax_rates[{i}] (值: '{tax_rates[i]}') 无法转换为浮点数，跳过此玩家。"
                             )
-                            continue  # 跳过这个玩家
-                        # --- [修复 2 结束] ---
+                            continue
 
                         tax_amount = int(total_assets_numeric * tax_rate)
 

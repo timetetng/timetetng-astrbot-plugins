@@ -43,7 +43,8 @@ class DatabaseManager:
         if not self._db: return DEFAULT_STATE.copy()
         
         self._db.row_factory = aiosqlite.Row
-        query = "SELECT favour, attitude, relationship, daily_favour_gain, last_update_date, daily_gift_gain, relationship_lock_until FROM user_states WHERE key = ?"
+        # [修改] 增加了 last_recovery_ts
+        query = "SELECT favour, attitude, relationship, daily_favour_gain, last_update_date, daily_gift_gain, relationship_lock_until, last_recovery_ts FROM user_states WHERE key = ?"
 
         # 尝试获取 Session 级别状态
         if session_id:
@@ -68,17 +69,20 @@ class DatabaseManager:
         state = DEFAULT_STATE.copy()
         state.update(new_state)
 
+        # [修改] INSERT 和 UPDATE 语句中增加了 last_recovery_ts
         await self._db.execute(
-            """INSERT INTO user_states (key, user_id, session_id, favour, attitude, relationship, daily_favour_gain, last_update_date, daily_gift_gain, relationship_lock_until)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(key) DO UPDATE SET
+            """INSERT INTO user_states (key, user_id, session_id, favour, attitude, relationship, daily_favour_gain, last_update_date, daily_gift_gain, relationship_lock_until, last_recovery_ts)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(key) DO UPDATE SET
                favour = excluded.favour, attitude = excluded.attitude, relationship = excluded.relationship,
                daily_favour_gain = excluded.daily_favour_gain, last_update_date = excluded.last_update_date,
-               daily_gift_gain = excluded.daily_gift_gain, relationship_lock_until = excluded.relationship_lock_until""",
+               daily_gift_gain = excluded.daily_gift_gain, relationship_lock_until = excluded.relationship_lock_until,
+               last_recovery_ts = excluded.last_recovery_ts""",
             (
                 key, user_id, session_id or "",
                 state["favour"], state["attitude"], state["relationship"],
                 state["daily_favour_gain"], state["last_update_date"], 
-                state["daily_gift_gain"], state["relationship_lock_until"]
+                state["daily_gift_gain"], state["relationship_lock_until"],
+                state.get("last_recovery_ts", 0) # [修改] 传入参数
             ),
         )
         await self._db.commit()
