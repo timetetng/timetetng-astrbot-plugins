@@ -22,7 +22,7 @@ from .sign_manager import SignManager
 # --- 配置部分 (无变化) ---
 MAX_LOTTERY_PER_DAY = 3
 MIN_LOTTERY_BET = 5
-MAX_LOTTERY_BET = 100000000000000
+MAX_LOTTERY_BET = 10_000_000
 LUCK_CARD_PERCENT_COST_TIERS = (
     0.0,  # 第1次使用 (已使用0次): 0% 金币成本
     0.01,  # 第2次使用 (已使用1次): 1%
@@ -484,25 +484,6 @@ class SignPlugin(Star):
                     msg = "🍀 您背包中的【幸运四叶草】已自动使用！\n今日您的抽奖将受到好运加持！"
                     consumed_item_messages.append(msg)
 
-        # 2. 检查抽奖券
-        if await shop_api.has_item(user_id, "lottery_ticket"):
-            if await shop_api.consume_item(user_id, "lottery_ticket"):
-                current_coins = await self.api.get_coins(user_id)
-                cost = int(current_coins * 0.20)
-                current_extra_attempts = user_data.get("extra_lottery_attempts", 0)
-                remaining_coins = await self.db.process_lottery_ticket_usage(
-                    user_id=user_id,
-                    cost=cost,
-                    current_extra_attempts=current_extra_attempts,
-                )
-
-                msg = (
-                    f"🎟️ 您背包中的【抽奖券】已自动使用！\n"
-                    f"效果：增加 1 次今日抽奖次数。\n"
-                    f"代价：扣除了您当前金币的20% ({cost}金币)。\n"
-                    f"💰 剩余金币: {remaining_coins}"
-                )
-                consumed_item_messages.append(msg)
 
         if consumed_item_messages:
             setattr(event, "items_consumed_this_event", True)
@@ -1049,7 +1030,7 @@ class SignPlugin(Star):
                     )
         elif bet_amount > prize_from_spin:  # 未命中奖池且亏损，部分亏损注入奖池
             coins_lost = bet_amount - prize_from_spin
-            pool_add = int(coins_lost * 0.2)
+            pool_add = int(coins_lost * 0.01)
             final_pool_amount += pool_add
             pool_needs_update = True
 
@@ -1207,7 +1188,7 @@ class SignPlugin(Star):
                 yield event.plain_result("处理道具后出错，找不到您的账户。")
                 return
 
-            # 步骤 3: 使用道具消耗后【剩余】的金币作为本次的梭哈金额
+# 步骤 3: 获取道具消耗后【剩余】的金币
             coins_after_consume = user_data_after_consume.get("coins", 0)
             if coins_after_consume <= 0:
                 yield event.plain_result(
@@ -1215,9 +1196,11 @@ class SignPlugin(Star):
                 )
                 return
 
-            # 步骤 4: 调用 lottery 函数。
-            # 由于 lottery 内部的道具检查有保护，不会重复消耗道具
-            async for result in self.lottery(event, str(coins_after_consume)):
+            # --- ✨ 核心修改点：取 拥有金币 和 最大上限 中的较小值 ---
+            actual_bet = min(coins_after_consume, MAX_LOTTERY_BET)
+
+            # 步骤 4: 调用 lottery 函数，传入限制后的金额
+            async for result in self.lottery(event, str(actual_bet)):
                 yield result
 
         except Exception as e:
