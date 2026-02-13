@@ -483,7 +483,25 @@ class SignPlugin(Star):
                     )
                     msg = "🍀 您背包中的【幸运四叶草】已自动使用！\n今日您的抽奖将受到好运加持！"
                     consumed_item_messages.append(msg)
+        # 2. 检查抽奖券
+        if await shop_api.has_item(user_id, "lottery_ticket"):
+            if await shop_api.consume_item(user_id, "lottery_ticket"):
+                current_coins = await self.api.get_coins(user_id)
+                cost = int(current_coins * 0.20)
+                current_extra_attempts = user_data.get("extra_lottery_attempts", 0)
+                remaining_coins = await self.db.process_lottery_ticket_usage(
+                    user_id=user_id,
+                    cost=cost,
+                    current_extra_attempts=current_extra_attempts,
+                )
 
+                msg = (
+                    f"🎟️ 您背包中的【抽奖券】已自动使用！\n"
+                    f"效果：增加 1 次今日抽奖次数。\n"
+                    f"代价：扣除了您当前金币的20% ({cost}金币)。\n"
+                    f"💰 剩余金币: {remaining_coins}"
+                )
+                consumed_item_messages.append(msg)
 
         if consumed_item_messages:
             setattr(event, "items_consumed_this_event", True)
@@ -699,17 +717,17 @@ class SignPlugin(Star):
             user_data = await self.db.get_user_data(target_user_id)
             today_str = datetime.date.today().strftime("%Y-%m-%d")
 
-            # --- 3. 处理道具消耗（例如，抽奖券） ---
-            if user_data:
-                consume_msg = await self._check_and_consume_lottery_items(
-                    event, user_data
-                )
-                if consume_msg:
-                    # 单独发送消耗消息，这样它们就不会阻塞主查询结果
-                    await event.send(event.plain_result(consume_msg))
-                    # 重新获取数据，以防消耗操作改变了用户状态（如金币）
-                    user_data = await self.db.get_user_data(target_user_id)
-
+            # # --- 3. 处理道具消耗（例如，抽奖券） ---
+            # if user_data:
+            #     consume_msg = await self._check_and_consume_lottery_items(
+            #         event, user_data
+            #     )
+            #     if consume_msg:
+            #         # 单独发送消耗消息，这样它们就不会阻塞主查询结果
+            #         await event.send(event.plain_result(consume_msg))
+            #         # 重新获取数据，以防消耗操作改变了用户状态（如金币）
+            #         user_data = await self.db.get_user_data(target_user_id)
+            #
             # --- 4. 处理并显示数据 ---
             if user_data:
                 display_name = None
