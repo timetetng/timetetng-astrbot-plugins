@@ -22,7 +22,7 @@ from .sign_manager import SignManager
 # --- 配置部分 (无变化) ---
 MAX_LOTTERY_PER_DAY = 3
 MIN_LOTTERY_BET = 5
-MAX_LOTTERY_BET = 10_000_000
+MAX_LOTTERY_BET = 1_000_000_000
 LUCK_CARD_PERCENT_COST_TIERS = (
     0.0,  # 第1次使用 (已使用0次): 0% 金币成本
     0.01,  # 第2次使用 (已使用1次): 1%
