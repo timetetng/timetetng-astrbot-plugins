@@ -43,54 +43,45 @@ class ShentaScreenshotPlugin(Star):
             await asyncio.sleep(60 * 60 * 24)
 
     async def update_tower_index(self):
-        logger.info("开始更新深塔索引...")
+        logger.info("开始更新深塔索引(encore.moe源)...")
         async with self.index_lock:
             try:
                 with open(INDEX_FILE, encoding="utf-8") as f:
                     index_data = json.load(f)
             except (json.JSONDecodeError, FileNotFoundError):
                 index_data = {}
-            latest_id = max([int(k) for k in index_data.keys()] or [0])
-            start_scan_id = max(
-                MIN_TOWER_ID_PROBE,
-                latest_id + 1 if latest_id > 0 else MIN_TOWER_ID_PROBE,
-            )
-            for i in range(start_scan_id, MAX_TOWER_ID_PROBE):
-                api_url = f"https://api.hakush.in/ww/data/zh/tower/{i}.json"
-                try:
-                    resp = await self.http_client.get(api_url)
-                    if resp.status_code == 404:
-                        break
-                    resp.raise_for_status()
-                    content_bytes, tower_info = resp.content, json.loads(resp.content)
-                    new_hash, begin_date, end_date = (
-                        hashlib.md5(content_bytes).hexdigest(),
-                        tower_info.get("Begin"),
-                        tower_info.get("End"),
-                    )
+
+            api_url = "https://api-v2.encore.moe/api/zh-Hans/toa"
+            try:
+                resp = await self.http_client.get(api_url)
+                resp.raise_for_status()
+                data = resp.json()
+                seasons = data.get("seasons", [])
+                
+                for s in seasons:
+                    s_id = str(s["id"])
+                    begin_date = s.get("start")
+                    end_date = s.get("finish")
                     if not (begin_date and end_date):
                         continue
-                    is_future = (
-                        datetime.strptime(begin_date, "%Y-%m-%d").date()
-                        > datetime.now(timezone.utc).date()
-                    )
-                    old_entry = index_data.get(str(i))
-                    if is_future and old_entry and old_entry.get("hash") != new_hash:
-                        logger.info(f"检测到第 {i} 期深塔数据更新，清除旧缓存。")
-                        cache_path = os.path.join(CACHE_DIR, f"shenta_image_{i}.png")
+                    
+                    # 清理旧缓存逻辑：如果期数信息有变动，或者开始时间变化
+                    if s_id not in index_data or index_data[s_id].get("begin") != begin_date[:10]:
+                        logger.info(f"检测到第 {s_id} 期深塔数据更新，清除旧缓存。")
+                        cache_path = os.path.join(CACHE_DIR, f"shenta_image_{s_id}.png")
                         if os.path.exists(cache_path):
                             os.remove(cache_path)
-                    index_data[str(i)] = {
-                        "begin": begin_date,
-                        "end": end_date,
-                        "hash": new_hash,
+                        
+                    index_data[s_id] = {
+                        "begin": begin_date[:10],
+                        "end": end_date[:10],
+                        "hash": "" # 新API不需要用文件Hash判断，故留空
                     }
-                except httpx.HTTPStatusError:
-                    break
-                except Exception as e:
-                    logger.warning(f"处理第 {i} 期数据时出错: {e}")
-            with open(INDEX_FILE, "w", encoding="utf-8") as f:
-                json.dump(index_data, f, ensure_ascii=False, indent=4)
+                
+                with open(INDEX_FILE, "w", encoding="utf-8") as f:
+                    json.dump(index_data, f, ensure_ascii=False, indent=4)
+            except Exception as e:
+                logger.error(f"深塔索引更新失败: {e}")
         logger.info("深塔索引更新完成。")
 
     def get_period_id(self, term: str) -> int | None:
@@ -187,19 +178,13 @@ class ShentaScreenshotPlugin(Star):
 
         if target_id is None:
             logger.error(f"无法获取到有效的目标ID (输入参数: '{period}')，流程中止。")
-            await event.send(
-                event.plain_result(
-                    f"无法计算“{period}”对应的期数，请检查索引文件或后台日志。"
-                )
-            )
+            yield event.plain_result(f"无法计算“{period}”对应的期数，请检查索引文件或后台日志。")
             return
 
         index_data = await load_index_data(self.index_lock)
         if str(target_id) not in index_data:
             logger.warning(f"目标ID {target_id} 在索引文件中不存在。")
-            await event.send(
-                event.plain_result(f"暂无“{period}”({target_id}期)的数据。")
-            )
+            yield event.plain_result(f"暂无“{period}”({target_id}期)的数据。")
             return
 
         cache_path = os.path.join(CACHE_DIR, f"shenta_image_{target_id}.png")
@@ -209,7 +194,7 @@ class ShentaScreenshotPlugin(Star):
             yield event.image_result(cache_path)
             return
 
-        logger.info("❌ 未命中缓存，开始生成新图片...")
+        logger.info("❌ 未命中缓存，开始生成新图片(encore源)...")
 
         # 获取深塔时间范围
         tower_dates_str = None
@@ -221,56 +206,46 @@ class ShentaScreenshotPlugin(Star):
             tower_dates_str = f"{begin_date_obj.month:02d}.{begin_date_obj.day:02d} - {end_date_obj.month:02d}.{end_date_obj.day:02d}"
 
         try:
-            api_url = f"https://api.hakush.in/ww/data/zh/tower/{target_id}.json"
-            headers = {"User-Agent": "Mozilla/5.0", "Referer": "https://ww2.hakush.in/"}
-            response = await self.http_client.get(api_url, headers=headers)
-            response.raise_for_status()
-            tower_data = response.json()
-            tasks = []
-            all_areas = tower_data.get("Area", {})
-            if "1" in all_areas and (
-                floor_4_data := all_areas["1"].get("Floor", {}).get("4")
-            ):
-                tasks.append(process_area_1(self.http_client, floor_4_data))
-            if "2" in all_areas:
-                tasks.append(
-                    process_area_2(self.http_client, all_areas["2"].get("Floor", {}))
-                )
-            if "3" in all_areas and (
-                floor_4_data := all_areas["3"].get("Floor", {}).get("4")
-            ):
-                tasks.append(process_area_3(self.http_client, floor_4_data))
+            processed_towers = await get_processed_tower_data(self.http_client, target_id)
+            if not processed_towers:
+                yield event.plain_result(f"获取第 {target_id} 期信息失败或数据为空。")
+                return
 
-            processed_towers = await asyncio.gather(*tasks)
-            all_image_urls_to_fetch = {el["icon"] for el in ELEMENT_MAP.values()}
-            all_image_urls_to_fetch.add(BUFF_ICON_URL)
-
-            base64_map = {
-                url: b64
-                for url, b64 in zip(
-                    all_image_urls_to_fetch,
-                    await asyncio.gather(
-                        *(
-                            fetch_image_as_base64(self.http_client, url)
-                            for url in all_image_urls_to_fetch
-                        )
-                    ),
-                )
-            }
-
+            # 收集所有需要下载的图片URL
+            urls_to_fetch = {BUFF_ICON_URL}
+            for el in ELEMENT_MAP.values():
+                urls_to_fetch.add(el["icon"])
+                
             for tower in processed_towers:
-                if not tower:
-                    continue
+                for group in tower["groups"]:
+                    for m_floor in group["floors"]:
+                        for monster in m_floor["monsters"]:
+                            if monster["icon"]:
+                                urls_to_fetch.add(monster["icon"])
+                            if monster["element_icon_url"]:
+                                urls_to_fetch.add(monster["element_icon_url"])
+
+            # 并发获取所有图片 base64
+            urls_list = list(urls_to_fetch)
+            base64_results = await asyncio.gather(
+                *(fetch_image_as_base64(self.http_client, url) for url in urls_list)
+            )
+            base64_map = dict(zip(urls_list, base64_results))
+
+            # 注入 base64 到数据结构中
+            for tower in processed_towers:
                 for group in tower["groups"]:
                     for element in group["recommended_elements"]:
-                        element["icon_base64"] = base64_map.get(
-                            element["icon"], TRANSPARENT_PIXEL_BASE64
-                        )
+                        element["icon_base64"] = base64_map.get(element["icon"], TRANSPARENT_PIXEL_BASE64)
+                    for m_floor in group["floors"]:
+                        for monster in m_floor["monsters"]:
+                            monster["icon_base64"] = base64_map.get(monster["icon"], TRANSPARENT_PIXEL_BASE64)
+                            monster["element_icon_base64"] = base64_map.get(monster["element_icon_url"], TRANSPARENT_PIXEL_BASE64)
 
             template_data = {
                 "tower_id": target_id,
-                "towers": [t for t in processed_towers if t],
-                "buff_icon_base64": base64_map.get(BUFF_ICON_URL),
+                "towers": processed_towers,
+                "buff_icon_base64": base64_map.get(BUFF_ICON_URL, TRANSPARENT_PIXEL_BASE64),
                 "tower_dates": tower_dates_str,
             }
             html_content = Template(HTML_TEMPLATE).render(template_data)
@@ -278,21 +253,9 @@ class ShentaScreenshotPlugin(Star):
             await local_render_html(html_content, target_id)
             yield event.image_result(cache_path)
 
-        except ImageDownloadError as e:
-            logger.error(f"图片生成失败，因资源下载不完整: {e}")
-            yield event.plain_result(
-                "图片生成失败，部分资源下载超时或失败。该结果不会被缓存，请稍后重试。"
-            )
-        except httpx.HTTPStatusError as e:
-            logger.error("API请求失败: %s", e)
-            yield event.plain_result(
-                f"获取第 {target_id} 期信息失败：服务器返回错误 (状态码: {e.response.status_code})。"
-            )
-        except Exception:
+        except Exception as e:
             logger.exception("处理深塔信息时发生未知错误")
-            yield event.plain_result(
-                f"处理第 {target_id} 期信息时发生未知错误，请检查后台日志。"
-            )
+            yield event.plain_result(f"处理第 {target_id} 期信息时发生未知错误: {e}")
 
     @filter.command("当期深塔", alias={"本期深塔"})
     async def shenta_current_period(self, event: AstrMessageEvent):
