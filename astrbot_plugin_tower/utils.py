@@ -2,21 +2,34 @@ import httpx
 import base64
 import re
 import json
+import os
 from typing import Dict, Any, List
-from .config import ELEMENT_MAP
+from playwright.async_api import async_playwright
+from .config import ELEMENT_MAP, CACHE_DIR
+
+class ImageDownloadError(Exception):
+    """自定义图片下载异常"""
+    pass
 
 async def fetch_image_as_base64(client: httpx.AsyncClient, url: str) -> str:
     """抓取图片并转换为 base64"""
     if not url:
         return ""
+        
     if url.startswith('/'):
         url = "https://api.encore.moe" + url
+        
     try:
         resp = await client.get(url, timeout=5)
         if resp.status_code == 200:
-            return f"data:image/png;base64,{base64.b64encode(resp.content).decode('utf-8')}"
+            # 动态判断图片 MIME 类型，防止浏览器内核拒载 WebP
+            mime_type = "image/webp" if ".webp" in url.lower() else "image/png"
+            return f"data:{mime_type};base64,{base64.b64encode(resp.content).decode('utf-8')}"
+        else:
+            print(f"Failed to fetch {url}, status code: {resp.status_code}")
     except Exception as e:
         print(f"Fetch image error for {url}: {e}")
+        
     return ""
 
 async def get_processed_tower_data(client: httpx.AsyncClient, period: int) -> List[Dict]:
@@ -54,7 +67,6 @@ async def get_processed_tower_data(client: httpx.AsyncClient, period: int) -> Li
         current_group = None
         
         for f_key in sorted_floor_keys:
-            # 修复 KeyError: 0
             # encore API 结构为 Area -> Floor -> Cost -> Array
             cost_dict = floors_dict[f_key]
             if not cost_dict:
@@ -84,6 +96,9 @@ async def get_processed_tower_data(client: httpx.AsyncClient, period: int) -> Li
                 
                 monster_icon = m.get("icon", "")
                 if monster_icon and not monster_icon.startswith('http'):
+                    # 确保相对路径一定带有前导斜杠
+                    if not monster_icon.startswith('/'):
+                        monster_icon = '/' + monster_icon
                     monster_icon = "https://api.encore.moe" + monster_icon
                     
                 monsters.append({
@@ -133,3 +148,24 @@ async def get_processed_tower_data(client: httpx.AsyncClient, period: int) -> Li
         processed_towers.append(tower_info)
         
     return processed_towers
+
+
+async def local_render_html(html_content: str, target_id: int):
+    """
+    使用 playwright 将生成的 HTML 渲染为图片并保存到缓存目录
+    """
+    cache_path = os.path.join(CACHE_DIR, f"shenta_image_{target_id}.png")
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        # device_scale_factor=2 保证截图出来的清晰度
+        page = await browser.new_page(device_scale_factor=2)
+        await page.set_content(html_content)
+        
+        # 等待元素加载完毕
+        element = await page.wait_for_selector('.main-container')
+        
+        # 截取 .main-container 的元素图并保存
+        await element.screenshot(path=cache_path)
+        await browser.close()
