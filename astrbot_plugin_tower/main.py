@@ -181,7 +181,14 @@ class ShentaScreenshotPlugin(Star):
             yield event.plain_result(f"无法计算“{period}”对应的期数，请检查索引文件或后台日志。")
             return
 
-        index_data = await load_index_data(self.index_lock)
+        # 修复：直接在这里读取 INDEX_FILE，替代未定义的 load_index_data
+        async with self.index_lock:
+            try:
+                with open(INDEX_FILE, encoding="utf-8") as f:
+                    index_data = json.load(f)
+            except (FileNotFoundError, json.JSONDecodeError):
+                index_data = {}
+
         if str(target_id) not in index_data:
             logger.warning(f"目标ID {target_id} 在索引文件中不存在。")
             yield event.plain_result(f"暂无“{period}”({target_id}期)的数据。")

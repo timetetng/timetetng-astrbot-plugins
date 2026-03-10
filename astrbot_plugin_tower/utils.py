@@ -54,7 +54,14 @@ async def get_processed_tower_data(client: httpx.AsyncClient, period: int) -> Li
         current_group = None
         
         for f_key in sorted_floor_keys:
-            raw_floor = floors_dict[f_key][0]
+            # 修复 KeyError: 0
+            # encore API 结构为 Area -> Floor -> Cost -> Array
+            cost_dict = floors_dict[f_key]
+            if not cost_dict:
+                continue
+            
+            # 取出字典的值并获取第一条数据的第一个塔层信息
+            raw_floor = list(cost_dict.values())[0][0]
             
             # 清洗Buff的HTML标签
             buffs = [{"text": re.sub(r'<[^>]+>', '', b.get("desc", ""))} for b in raw_floor.get("buffs", [])]
