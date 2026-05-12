@@ -1,4 +1,4 @@
-# astrbot-plugin-osugreek
+# astrbot\_plugin\_osugreek
 <h1 align="center">✨ 4k希腊字母BG生成器 ✨</h1>
 <p align="center">
 ✨ 在图片上添加osu!mania 4k神秘希腊字母的 NoneBot2 插件，可批量生产练习图BG ✨  为[nonebot-plugin-osugreek](https://github.com/ElainaFanBoy/nonebot-plugin-osugreek)的移植版本，并进行一些优化。
