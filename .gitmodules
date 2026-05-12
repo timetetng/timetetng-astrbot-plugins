@@ -1,0 +1,3 @@
+[submodule "astrbot_plugin_osu"]
+	path = astrbot_plugin_osu
+	url = https://github.com/timetetng/astrbot_plugin_osu_dl
