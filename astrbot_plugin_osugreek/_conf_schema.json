@@ -1,0 +1,12 @@
+{
+  "osugreek_chromatic_intensity": {
+    "description": "RGB分离强度 (范围1-20, 默认4)",
+    "type": "int",
+    "default": 4
+  },
+  "osugreek_glitch_intensity": {
+    "description": "故障效果强度 (范围0-5, 默认0, 0表示无故障效果)",
+    "type": "int",
+    "default": 0
+  }
+}

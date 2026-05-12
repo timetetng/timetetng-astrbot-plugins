@@ -1,0 +1,6 @@
+name: astrbot_plugin_osugreek
+displayname: osu!希腊字母BG生成器
+desc: 在图片上添加osu!mania 4k希腊字母，支持色散和故障效果
+author: YakumoZn
+version: 1.0.0
+repo: https://github.com/YakumoZn/nonebot-plugin-osugreek
