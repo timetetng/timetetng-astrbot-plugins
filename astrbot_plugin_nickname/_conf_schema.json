@@ -1,0 +1,8 @@
+{
+  "nickname_blacklist": {
+    "description": "昵称黑名单",
+    "type": "list",
+    "default": [],
+    "hint": "用户不能设置的昵称列表。在此处添加不希望用户设置为昵称的词语"
+  }
+}
