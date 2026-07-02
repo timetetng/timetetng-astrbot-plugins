@@ -111,16 +111,17 @@ class SleepPlugin(Star):
         is_new_umo = False
         if umo not in self.session_settings:
             is_new_umo = True
+            # 私聊会话默认关闭睡眠和关机，除非手动开启
+            is_private = self._is_private_chat_umo(umo)
+            default_enabled = False if is_private else self.default_sleep_enabled
+            default_shutdown = False if is_private else self.default_shutdown_enabled
             self.session_settings[umo] = {
-                # ... (原有睡眠相关配置)
-                "enabled": False, 
-                "enabled": self.default_sleep_enabled,
+                "enabled": default_enabled,
                 "start_hour": self.default_start_hour,
                 "end_hour": self.default_end_hour,
                 "last_proactive_notification_for_start_time": None,
                 "last_proactive_wakeup_notification_iso": None,
-                # 新增关机相关配置
-                "shutdown_enabled": self.default_shutdown_enabled,
+                "shutdown_enabled": default_shutdown,
                 "shutdown_start_hour": self.default_shutdown_start_hour,
                 "shutdown_end_hour": self.default_shutdown_end_hour,
                 "last_proactive_shutdown_notify_iso": None,
@@ -128,15 +129,21 @@ class SleepPlugin(Star):
             }
         current_session_data = self.session_settings[umo]
         made_structural_changes = False
+        # 私聊会话强制 enabled=False/shutdown_enabled=False（兼容已写入的错误数据）
+        if self._is_private_chat_umo(umo):
+            for key in ("enabled", "shutdown_enabled"):
+                if current_session_data.get(key, False):
+                    current_session_data[key] = False
+                    made_structural_changes = True
         # 确保所有键都存在，包括新增的键
+        is_private = self._is_private_chat_umo(umo)
         defaults_for_session = {
-            "enabled": False, "start_hour": self.default_start_hour,
-            "enabled": self.default_sleep_enabled,
+            "enabled": False if is_private else self.default_sleep_enabled,
+            "start_hour": self.default_start_hour,
             "end_hour": self.default_end_hour,
             "last_proactive_notification_for_start_time": None,
             "last_proactive_wakeup_notification_iso": None,
-            # 新增关机相关键
-            "shutdown_enabled": self.default_shutdown_enabled,
+            "shutdown_enabled": False if is_private else self.default_shutdown_enabled,
             "shutdown_start_hour": self.default_shutdown_start_hour,
             "shutdown_end_hour": self.default_shutdown_end_hour,
             "last_proactive_shutdown_notify_iso": None,
@@ -149,6 +156,13 @@ class SleepPlugin(Star):
         if is_new_umo or made_structural_changes:
             self._save_session_settings()
         return current_session_data
+
+    def _is_private_chat_umo(self, umo: str) -> bool:
+        """通过 UMO 字符串判断是否为私聊会话。"""
+        try:
+            return umo.split(":")[1] == "FriendMessage" if ":" in umo else False
+        except (IndexError, ValueError):
+            return False
 
     def _is_sleep_time_now(self, start_hour: int, end_hour: int, custom_time: datetime.datetime = None) -> bool:
         check_dt = custom_time if custom_time else datetime.datetime.now()
@@ -177,8 +191,8 @@ class SleepPlugin(Star):
 
                     # 遍历所有会话的配置
                     for umo, settings in list(self.session_settings.items()):
-                        # === 睡眠通知逻辑 ===
-                        if settings.get("enabled", False):
+                        # === 睡眠通知逻辑（关机启用时跳过，避免重复通知）===
+                        if settings.get("enabled", False) and not settings.get("shutdown_enabled", False):
                             start_hour = settings["start_hour"]
                             end_hour = settings["end_hour"]
 
@@ -553,6 +567,80 @@ class SleepPlugin(Star):
             f"关机时间设定: {start_h:02d}:00 - {end_h:02d}:00"
             f"{shutdown_notify_info}{boot_notify_info}"
         )
+
+    @filter.permission_type(filter.PermissionType.ADMIN)
+    @filter.command("清理睡眠状态")
+    async def clean_sleep_state_command(self, event: AstrMessageEvent, action: str = "", target: str = ""):
+        """
+        [管理员] 清理会话睡眠状态，用于修复异常状态。
+        用法:
+        /清理睡眠状态                              - 查看所有会话状态摘要
+        /清理睡眠状态 重置私聊                     - 重置所有私聊会话(禁用睡眠和关机)
+        /清理睡眠状态 重置通知                     - 重置所有会话的通知标记(修复重复发送)
+        """
+        if action == "重置私聊":
+            count = 0
+            for umo in list(self.session_settings.keys()):
+                if self._is_private_chat_umo(umo):
+                    conf = self.session_settings[umo]
+                    if conf.get("enabled", False) or conf.get("shutdown_enabled", False):
+                        conf["enabled"] = False
+                        conf["shutdown_enabled"] = False
+                        count += 1
+            self._save_session_settings()
+            yield event.plain_result(f"已重置 {count} 个私聊会话的睡眠/关机状态为关闭。")
+
+        elif action == "重置通知":
+            count = 0
+            notify_keys = [
+                "last_proactive_notification_for_start_time",
+                "last_proactive_wakeup_notification_iso",
+                "last_proactive_shutdown_notify_iso",
+                "last_proactive_boot_notify_iso",
+            ]
+            for conf in self.session_settings.values():
+                for key in notify_keys:
+                    if conf.get(key) is not None:
+                        conf[key] = None
+                        count += 1
+            self._save_session_settings()
+            yield event.plain_result(f"已清除 {count} 个通知标记。下次检测周期将重新发送通知。")
+
+        else:
+            total = len(self.session_settings)
+            enabled_count = sum(1 for s in self.session_settings.values() if s.get("enabled", False))
+            shutdown_count = sum(1 for s in self.session_settings.values() if s.get("shutdown_enabled", False))
+            private_enabled = sum(
+                1 for umo, s in self.session_settings.items()
+                if self._is_private_chat_umo(umo) and s.get("enabled", False)
+            )
+            detail_lines = []
+            for umo, conf in self.session_settings.items():
+                chat_type = "私聊" if self._is_private_chat_umo(umo) else "群聊"
+                flags = []
+                if conf.get("enabled", False):
+                    flags.append(f"睡眠({conf['start_hour']:02d}-{conf['end_hour']:02d})")
+                if conf.get("shutdown_enabled", False):
+                    flags.append(f"关机({conf['shutdown_start_hour']:02d}-{conf['shutdown_end_hour']:02d})")
+                if flags:
+                    detail_lines.append(f"  {chat_type} {umo}: {', '.join(flags)}")
+
+            msg = (
+                f"会话统计: 共 {total} 个\n"
+                f"  - 开启睡眠: {enabled_count}\n"
+                f"  - 开启关机: {shutdown_count}\n"
+                f"  - 私聊异常开启: {private_enabled}\n"
+            )
+            if detail_lines:
+                msg += "\n--- 已开启的会话 ---\n" + "\n".join(detail_lines)
+            else:
+                msg += "\n没有已开启的会话。"
+            msg += (
+                "\n\n管理员命令:\n"
+                "  /清理睡眠状态 重置私聊   - 关闭所有私聊的睡眠/关机\n"
+                "  /清理睡眠状态 重置通知   - 重置所有通知标记(修复重复发送)\n"
+            )
+            yield event.plain_result(msg)
 
     async def terminate(self):
         logger.info(f"{self.plugin_id_name} is terminating...")

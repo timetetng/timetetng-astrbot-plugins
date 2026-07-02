@@ -29,14 +29,20 @@ class LogicService:
         self, user_id: str, session_id: str | None, original_text: str
     ) -> str:
         """解析 LLM 回复，更新数据库，返回清理后的文本"""
+        # 诊断：原始 LLM 输出全文（只保留前 500 字符）
+        logger.info(f"[FavourPro DEBUG] user={user_id} raw_llm_output={original_text[:500]!r}")
+
         block_match = BLOCK_PATTERN.search(original_text)
+        logger.info(f"[FavourPro DEBUG] user={user_id} block_match_found={block_match is not None}")
 
         # 如果没有匹配到状态块，直接返回原文
         if not block_match:
+            logger.warning(f"[FavourPro DEBUG] user={user_id} NO_BLOCK_MATCH — 状态块未被识别, 原文未清理, 前200字符: {original_text[:200]!r}")
             return original_text
 
         block_text = block_match.group(0)
-        final_text = re.sub(r"\[.*?\]", "", original_text, flags=re.DOTALL).strip()
+        # 与 BLOCK_PATTERN 保持一致：兼容缺失右方括号的退化块
+        final_text = re.sub(r"\[\s*(?:Favour:|Attitude:|Relationship:).*?(?:]|$)", "", original_text, flags=re.DOTALL).strip()
 
         # 1. 解析好感度 (此时获取的是增量，例如 +5 或 -2)
         favour_match = FAVOUR_PATTERN.search(block_text)

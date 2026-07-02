@@ -17,11 +17,13 @@ DAILY_FAVOUR_LIMIT = 100
 DAILY_GIFT_LIMIT = 30
 
 # 正则表达式
-BLOCK_PATTERN = re.compile(r"\[\s*(?:Favour:|Attitude:|Relationship:).*?\]", re.DOTALL)
+# 兼容模型缺失右方括号的情况：结尾优先匹配 ]，否则回退到行尾/字符串末尾
+BLOCK_PATTERN = re.compile(r"\[\s*(?:Favour:|Attitude:|Relationship:).*?(?:]|$)", re.DOTALL)
 
 FAVOUR_PATTERN = re.compile(r"Favour:\s*([+-]?\d+)")
-ATTITUDE_PATTERN = re.compile(r"Attitude:\s*(.+?)(?=\s*,\s*Relationship:|\])")
-RELATIONSHIP_PATTERN = re.compile(r"Relationship:\s*(.+?)(?=\s*\])")
+# 兼容缺失右方括号：结尾 lookahead 增加 $ 兜底
+ATTITUDE_PATTERN = re.compile(r"Attitude:\s*(.+?)(?=\s*,\s*Relationship:|\]|$)")
+RELATIONSHIP_PATTERN = re.compile(r"Relationship:\s*(.+?)(?=\s*]|$)")
 
 # 提示词 (Prompt)
 INSTRUCTION_PROMPT = """[机密指令] 这是一个记录你内心真实想法的秘密评估系统。请遵循以下规则，并在你的回复内容结束后，换行并严格按照下面的格式更新你对用户的最新状态。
@@ -35,6 +37,7 @@ INSTRUCTION_PROMPT = """[机密指令] 这是一个记录你内心真实想法�
     -   **注意**: `Favour` 字段不再填写总分，而是填写**本次对话导致的增减幅度**。
     -   **示例**: `[Favour: +3, Attitude: 觉得有趣, Relationship: 朋友]` 或 `[Favour: -5, Attitude: 感到被冒犯, Relationship: 陌生人]`。
     -   如果好感度没有变化，请填写 `+0`。
+    -   **必须以英文右方括号 `]` 闭合**：状态块末尾的那个 `]` 是系统识别的关键标记，绝对不能省略、不能换成中文】、不能换行后才写。
 
 2.  **幅度限制**: 请根据用户本次对话的表现决定增减幅度，**单次交互的调整区间必须严格控制在 `[-10, +5]` 之间**。
     -   `+1 ~ +2`: 一般的友好互动。
